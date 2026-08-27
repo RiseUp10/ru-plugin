@@ -108,7 +108,7 @@ function send_seo_audit_email($post_id, $email) {
     return riseup_send_email([
         'to'        => $email,
         'subject'   => 'SEO Audit Report – ' . $site_url,
-        'template'  => 'seo-audit-template',   // apunta a seo-audit-template.php
+        'template'  => 'seo-audit',   // debe matchear el match() de riseup_send_email() en email-manager.php, que internamente lo resuelve a email-templates/seo-audit-template.php
         'data'      => $data,
         'format'    => 'html',
     ]);

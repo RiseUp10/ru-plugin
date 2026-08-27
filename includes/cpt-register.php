@@ -14,6 +14,24 @@ add_action('init', function () {
     ]);
 });
 
+// CPT per l'applicazione al monoprodotto (sito 1€) — Etapa A: screening
+// con verifica identità (email + SMS) prima delle domande, salvataggio
+// progressivo per risposta. Vedi ru-plugin/RU-SUBSCRIPTION-SYSTEM-PLAN.md.
+function riseup_register_application_cpt() {
+    register_post_type('ru_application', [
+        'label'           => 'Applicazioni',
+        'public'          => false,
+        'show_ui'         => true,
+        'has_archive'     => false,
+        'rewrite'         => false,
+        'supports'        => ['title', 'custom-fields'],
+        'capability_type' => 'post',
+        'menu_icon'       => 'dashicons-forms',
+        'menu_position'   => 27,
+    ]);
+}
+add_action('init', 'riseup_register_application_cpt');
+
 // CPT per salvare i lead da form opt-in (guide, strumenti, ecc.)
 function riseup_register_lead_optins_cpt() {
     $labels = [

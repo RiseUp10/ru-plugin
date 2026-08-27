@@ -88,11 +88,15 @@ add_action('ru_verified_guide', function ($post_id) {
     $resource = get_post_meta($post_id, 'lead_resource', true);
     if (!$email) return;
 
+    // Cada guía vive como página armada a mano en Elementor bajo /risorse/{slug}/
+    $resource_url = home_url('/risorse/' . sanitize_title($resource) . '/');
+
     $sent = riseup_send_email([
         'to'         => $email,
         'subject'    => 'Ecco la tua risorsa gratuita',
         'template'   => 'guides',
-        'data'       => compact('name', 'sector', 'resource'),
+        'data'       => compact('name', 'sector', 'resource', 'resource_url'),
+        'format'     => 'html',
         'attachments'=> [],
     ]);
     error_log("🔥 [RiseUp] ➤ Guide email send result=" . ($sent ? 'OK' : 'FAIL'));

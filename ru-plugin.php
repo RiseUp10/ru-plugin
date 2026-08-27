@@ -20,6 +20,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/schema-email-report.php';
 require_once plugin_dir_path(__FILE__) . 'includes/elementor-integration.php';
 require_once plugin_dir_path(__FILE__) . 'includes/seo-audit-core.php';
 require_once plugin_dir_path(__FILE__) . 'includes/pdf-report.php';
+require_once plugin_dir_path(__FILE__) . 'includes/application-core.php';
 
 add_action('wp_enqueue_scripts', function () {
     wp_enqueue_style(

@@ -564,6 +564,12 @@ add_action('admin_enqueue_scripts', function () {
     );
 });
 
+// Código viejo, pre-rediseño (corría el check al toque, sin doble opt-in).
+// Ya no lo llama el JS del front (ver js/schema-audit.js) — reemplazado por
+// init_schema_audit() + schema_audit_full_job() más abajo. Comentado (no
+// borrado) por unos días por si hace falta volver atrás rápido — después
+// se puede borrar.
+/*
 add_action('wp_ajax_run_schema_audit', 'schema_audit_run');
 add_action('wp_ajax_nopriv_run_schema_audit', 'schema_audit_run');
 
@@ -654,6 +660,7 @@ function schema_audit_run() {
         'post_id' => $post_id,
     ]);
 }
+*/
 
 // Init Schema Audit: crea CPT + pide confirmación (doble opt-in, como SEO)
 function init_schema_audit() {
@@ -751,9 +758,14 @@ add_action('schema_audit_full_job', function ($post_id) {
     }
 
     // ---- GUARDA DATOS ----
+    // wp_slash() en schema_raw: update_post_meta() llama internamente a wp_unslash(),
+    // que come cualquier "\" del string. El JSON-LD crudo trae escapes tipo ó
+    // (acentos) — sin este wp_slash() quedan corruptos (ej. "u00f3" en vez de "ó").
+    // schema_valid se guarda como array nativo (no json_encode) para evitar el mismo
+    // problema: al decodificar arriba ya quedaron caracteres UTF-8 reales, sin "\".
     update_post_meta($post_id, 'schema_status', $status);
-    update_post_meta($post_id, 'schema_raw', implode("\n\n", $schemas_raw));
-    update_post_meta($post_id, 'schema_valid', json_encode($schemas_valid));
+    update_post_meta($post_id, 'schema_raw', wp_slash(implode("\n\n", $schemas_raw)));
+    update_post_meta($post_id, 'schema_valid', $schemas_valid);
     update_post_meta($post_id, 'audit-status', 'completed');
 
     // ---- MANDA EMAIL ----

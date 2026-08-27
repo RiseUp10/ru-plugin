@@ -41,16 +41,28 @@ function ru_dispatch_verification_email($post_id) {
         'seo_audit'    => 'audit SEO',
         'schema_audit' => 'report Schema Markup',
         'guide'        => 'guida gratuita',
+        'application'  => 'la tua candidatura',
         default        => 'contenuto richiesto',
     };
 
+    // La candidatura no "recibe" nada al confirmar (a diferencia de audit/guía),
+    // así que el texto genérico ("Hai richiesto... riceverlo") no encaja —
+    // se pisa con copy propia solo para este tipo, sin tocar el default.
+    $subject = ($type === 'application')
+        ? 'Conferma la tua email per continuare la candidatura'
+        : 'Conferma il tuo indirizzo per ricevere ' . $context_label;
+
     $sent = riseup_send_email([
         'to'       => $email,
-        'subject'  => 'Conferma il tuo indirizzo per ricevere ' . $context_label,
+        'subject'  => $subject,
         'template' => 'confirm-audit',
         'data'     => [
             'confirm_url'   => $confirm_url,
             'context_label' => $context_label,
+            'body_text'     => ($type === 'application')
+                ? 'Grazie per il tuo interesse! Per continuare la tua candidatura, conferma il tuo indirizzo email.'
+                : null,
+            'button_text'   => ($type === 'application') ? 'Conferma e continua' : null,
         ],
         'format'   => 'html',
     ]);
@@ -113,10 +125,21 @@ add_action('wp_ajax_nopriv_ru_verify_email', 'ru_verify_email');
 function ru_verify_email() {
     $post_id = absint($_GET['post_id'] ?? 0);
     $token   = sanitize_text_field($_GET['token'] ?? '');
-    $landing = home_url('/email-confirmed/');
 
-    $go = function ($status) use ($landing) {
-        wp_safe_redirect(add_query_arg('status', $status, $landing));
+    // La aplicación (Etapa A) no vuelve a la landing genérica de "gracias" —
+    // tiene que volver al mismo flujo de una-pregunta-a-la-vez para seguir
+    // con el paso del celular. El resto de los flujos sigue igual que antes.
+    $type_early = $post_id ? get_post_meta($post_id, 'verify_type', true) : '';
+    $landing = ($type_early === 'application')
+        ? home_url('/applica/')
+        : home_url('/email-confirmed/');
+
+    $go = function ($status, $extra = []) use ($landing, $post_id, $type_early) {
+        $args = array_merge(['status' => $status], $extra);
+        if ($type_early === 'application' && $post_id) {
+            $args['post_id'] = $post_id; // el JS lo necesita para retomar el flujo
+        }
+        wp_safe_redirect(add_query_arg($args, $landing));
         exit;
     };
 
@@ -144,6 +167,15 @@ function ru_verify_email() {
     update_post_meta($post_id, 'verify_status', 'confirmed');
     delete_post_meta($post_id, 'verify_token');
 
+    // Schema Audit: corre sincrónico (liviano — un solo fetch + regex, sin
+    // PSI/IA como el audit SEO) para poder mostrar ya en esta pantalla si se
+    // encontró schema o no, en vez del mensaje genérico "te llega por mail".
+    if ($type === 'schema_audit') {
+        do_action('ru_verified_schema_audit', $post_id);
+        $schema_status = get_post_meta($post_id, 'schema_status', true) ?: 'not_found';
+        $go('ok', ['schema' => $schema_status]);
+    }
+
     register_shutdown_function(function () use ($post_id, $type) {
         if (function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
@@ -158,6 +190,18 @@ function ru_verify_email() {
 // donde se quiera mostrar el mensaje según ?status=ok|used|expired|invalid.
 add_shortcode('ru_audit_status', function () {
     $status = sanitize_text_field($_GET['status'] ?? '');
+    $schema = sanitize_text_field($_GET['schema'] ?? '');
+
+    // Schema Audit: mensaje puntual según si se encontró markup o no
+    // (el resto de los flujos, SEO/guía, siguen con el mensaje genérico
+    // de abajo porque el trabajo pesado corre después, en background).
+    if ($status === 'ok' && $schema) {
+        $text = ($schema === 'not_found')
+            ? '❌ Schema non trovato.'
+            : '✅ Schema Markup trovato — più dettagli nella email che stai per ricevere.';
+        return '<p class="ru-audit-status">' . esc_html($text) . '</p>';
+    }
+
     $messages = [
         'ok'      => 'Grazie! Il contenuto richiesto ti arriverà a breve via email.',
         'used'    => 'Questo link è già stato confermato. Controlla la tua casella di posta.',

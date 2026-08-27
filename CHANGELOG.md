@@ -1,5 +1,16 @@
 # Changelog — RU Plugin
 
+## 2026-08-27
+
+**Aplicación al monoprodotto (Etapa A) + remitente de mail + fixes varios**
+
+- **Nuevo: `ru_application`** — CPT + flujo de aplicación al sitio 1€ (Etapa A del pivot a monoproducto, ver `RU-SUBSCRIPTION-SYSTEM-PLAN.md`). UX de una pregunta a la vez (`js/application.js`, shortcode `[ru_application]`), guardado progresivo por respuesta vía AJAX (permite retargeting de leads que abandonan a mitad de camino). Sin ACF — post meta nativo, mismo patrón que `seo_report`/`lead_optins`.
+- **Verificación de identidad en dos pasos**: email (reusa el doble opt-in de `verification.php`, `type='application'`) + celular (código de 6 dígitos por SMS vía API transaccional de Brevo, requiere `BREVO_API_KEY` en wp-config.php). `verification.php` ahora redirige el tipo `application` de vuelta a `/applica/` (con `post_id`) en vez de a la landing genérica `/email-confirmed/`, para retomar el flujo en el paso del celular.
+- **Reenvío de confirmación**: si el mail no llega, se puede reenviar el mismo (mismo token, no crea una aplicación nueva) — antes solo se podía reiniciar con otro email.
+- **Aprobación manual (v1, deliberado)**: no hay motor de reglas — la revisión de cada aplicación es manual, vía la lista nativa del CPT en wp-admin.
+- **Remitente de todos los mails del plugin corregido**: era `noreply@riseup.marketing`, contradecía el principio del workspace de no sonar frío/corporativo. Ahora `Roberto da RiseUp <roberto@riseup.marketing>`, con Reply-To al mismo mail (no a un `contatto@` genérico) — afecta a los 4 flujos (SEO, Schema, guías, candidatura).
+- **Fixes de paso** (parte de la misma sesión): `guides-template.php` reescrito a HTML real (antes mandaba texto plano armado a mano, con referencia a una ruta vieja pre-consolidación); `email-report.php` con el nombre de template corregido para matchear `email-manager.php`; `schema-email-report.php` ya no hace doble-decode de `schema_valid` (se guarda como array nativo desde `schema_audit_full_job`, no como JSON string); `seo-audit-core.php` con el `schema_audit_run()` viejo comentado (reemplazado hace rato por `init_schema_audit()`, quedaba código muerto activo).
+
 ## 2026-08-06
 
 **Email delivery fixes + API upgrade + Schema audit redesign**
