@@ -352,3 +352,47 @@ function ru_send_sms_via_brevo($phone_e164, $message) {
 
     return true;
 }
+
+// ---------------------------------------------------------------------
+// Revisión manual en wp-admin (v1 — no hay motor de reglas, ver build pack)
+// ---------------------------------------------------------------------
+
+// El metabox nativo de "Custom Fields" no aparece de forma confiable en
+// todos los entornos de WP (mismo problema que ya tenía seo_report) — se
+// muestra un resumen propio, prolijo, debajo del título, en vez de
+// depender de eso. Es la pantalla que se usa para aprobar/rechazar.
+add_action('edit_form_after_title', function ($post) {
+    if ($post->post_type !== 'ru_application') return;
+
+    $post_id = $post->ID;
+    $get = fn($k) => get_post_meta($post_id, $k, true);
+
+    $email_verified = $get('verify_status') === 'confirmed';
+    $phone_verified = (bool) $get('phone_verified');
+
+    $labels = [
+        'business_name' => 'Nome attività',
+        'story'         => 'Racconto attività',
+        'goal'          => 'Obiettivo',
+        'website'       => 'Sito web',
+        'instagram'     => 'Instagram',
+        'tiktok'        => 'TikTok',
+        'facebook'      => 'Facebook',
+        'location'      => 'Posizione',
+    ];
+
+    echo '<div style="background:#fff; border:1px solid #ccd0d4; padding:15px 20px; margin:20px 0;">';
+    echo '<h2 style="margin-top:0;">Candidatura</h2>';
+
+    echo '<p><strong>Stato:</strong> ' . esc_html($get('application_status') ?: 'pending_email') . '</p>';
+    echo '<p><strong>Email:</strong> ' . esc_html($get('email')) . ' — ' . ($email_verified ? '✅ verificata' : '❌ non verificata') . '</p>';
+    echo '<p><strong>Telefono:</strong> ' . esc_html($get('phone')) . ' — ' . ($phone_verified ? '✅ verificato' : '❌ non verificato') . '</p>';
+
+    echo '<table class="widefat" style="margin-top:15px;"><tbody>';
+    foreach ($labels as $key => $label) {
+        $value = $get($key);
+        echo '<tr><td style="width:180px;"><strong>' . esc_html($label) . '</strong></td><td>' . nl2br(esc_html($value ?: '—')) . '</td></tr>';
+    }
+    echo '</tbody></table>';
+    echo '</div>';
+});

@@ -24,11 +24,11 @@
 #ru-application-root .ru-app-intro { font-size:0.9rem; color:#8a8a8a; margin:0 0 8 px; }
 #ru-application-root .ru-app-step label { display:block; font-size:1.15rem; font-weight:600; margin:40px 0 10px 0; }
 #ru-application-root .ru-app-group-label { display:block; font-size:1.15rem; font-weight:600; margin:0 0 10px; }
-#ru-application-root .ru-app-step input, #ru-application-root .ru-app-step textarea { display:block; width:100%; margin:0 0 14px; padding:10px 12px; box-sizing:border-box; border-radius:12px; }
+#ru-application-root .ru-app-step input, #ru-application-root .ru-app-step textarea { display:block; width:100%; margin:0 0 14px; padding:10px 12px; box-sizing:border-box; border-radius:12px; font-family:Maven Pro; font-weight:500; }
 #ru-application-root .ru-app-step input:focus, #ru-application-root .ru-app-step textarea:focus { outline:none; box-shadow:0 0 0 2px rgba(0,68,128,.25); }
 #ru-application-root .ru-app-error { color:#c0392b; font-size:0.85rem; min-height:1em; }
-.ru-app-link-button { background:none; border:none; padding:0; color:#555; text-decoration:underline; cursor:pointer; font-size:0.85rem; }
-#ru-application-root .apply-button { display:inline-block; border:2px solid ; border-radius:25px; padding:12px 28px; font-size:1rem; font-weight:600; color:#fff; background:#004480; cursor:pointer; }
+.ru-app-link-button { background:none; border:none; padding:0; color:#555; text-decoration:underline; cursor:pointer; font-size:0.85rem; white-space:normal; }
+#ru-application-root .apply-button { display:inline-block; border-style:solid; border-color:#fff; border-width:1px 3px 3px 1px; border-radius:25px; padding:12px 28px; font-size:1rem; font-weight:600; color:#fff; background:#004480; cursor:pointer; }
 #ru-application-root .apply-button:hover { background:#0058a8; }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -91,10 +91,11 @@
 }
 
 /* Main button */
-.mainButton { overflow:hidden; border-radius:20px; border:1px solid white; }
-.mainButton .neonButton { display:block; overflow:hidden; position:relative; font-size:25px; justify-content:center !important; text-align:center; /*color:rgba(251,128,0);*/ color:white; font-family:'Zen Dots', sans-serif; letter-spacing:1.6px; padding:8px 25px; text-decoration:none !important; box-shadow:0 8px 16px rgba(21, 5, 5, .5);  }
+.mainButton { overflow:hidden; border-radius:25px; border-style:solid; border-color:white; border-width: 1px 3px 3px 1px; box-shadow: 0 0 10px #fff; }
+.mainButton .neonButton { display:block; overflow:hidden; position:relative; font-size:25px; text-align:center; color:white; font-family:'Zen Dots', sans-serif; letter-spacing:1.6px; padding:8px 25px; text-decoration:none !important; }
 
-.mainButton .neonButton:hover{ color:rgba(67, 114, 255, 1); box-shadow:0 0 10px #4372FF, 0 0 20px #4372FF, 0 0 40px #4372FF, 0 0 80px #4372FF; }
+.mainButton:hover { box-shadow:0 0 10px #4372FF, 0 0 20px #4372FF, 0 0 40px #4372FF, 0 0 80px #4372FF; }
+.mainButton .neonButton:hover { color:rgba(67, 114, 255, 1); }
 
 .neonButton span  { position:absolute; top:-100%; left:0; background:linear-gradient(#4372FF, #33FCFF, #004480, #004480); width:100%; height:230%; transition:.5s; z-index:-1; }
 
@@ -109,7 +110,6 @@ background: rgba(0, 68, 128, 0.5);
 /*box-shadow: 0 0 3px 1px rgba(238, 235, 235, 1);*/
 backdrop-filter: blur(5px);
 -webkit-backdrop-filter: blur(5px);
-/*border: 1px solid rgba(238, 235, 235, 1);*/
 }
 
 /*SEO Audit tool messages*/
@@ -167,37 +167,19 @@ backdrop-filter: blur(5px);
 
 /* Adjust for mobile */
 @media only screen and (max-width: 767px) {
-	.container:hover {
-	transition: none !important;   }
-	
-	.reveal{
-	transition: all 0.3s ease-in-out;
-	width: 0;   }
-
-	.visible {
-	width: 70% !important;   }
-
-	.container:hover .reveal {
-	width: 15% !important;   }
-
-   .container:hover .visible {
-    width: 70% !important;   }
-    
-    .container:hover .revealvertical {
-    max-height: 230px !important;   }
+	.container:hover { transition:none !important; }
+	.reveal{ transition:all 0.3s ease-in-out; width:0; }
+	.visible { width:70% !important; }
+	.container:hover .reveal { width:15% !important; }
+    .container:hover .visible { width:70% !important; }
+    .container:hover .revealvertical { max-height:230px !important; }
 }
 
 /* Adjust for tablets */
 @media only screen and (min-width: 767px) and (max-width: 1024px) {
-	.container:hover .reveal {
-		width: 25%;   }
-
-	.container:hover .visible {
-		width: 50% !important;
-		color: #33FCFF;   }
-	
-	.container:hover .revealvertical {
-		max-height: 200px !important;   }
+	.container:hover .reveal { width:25%; }
+	.container:hover .visible { width:50% !important; color:#33FCFF; }
+	.container:hover .revealvertical { max-height:200px !important;   }
 }
 /*Sections Effect in Home Page - End*/
 
