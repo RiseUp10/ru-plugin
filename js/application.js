@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function showEmailStep() {
     render(`
       <div class="ru-app-step">
-        <p class="ru-app-intro">Prima di tutto verifichiamo che sia davvero tu — giusto per evitare richieste inutili.</p>
+        <p class="ru-app-intro">Prima di tutto verifichiamo che sia davvero tu, giusto per evitare richieste inutili.</p>
         <label>Qual è la tua email?</label>
         <input type="email" id="ru-app-email" autocomplete="email" required>
         <input type="text" name="hp_field" id="ru-app-hp" autocomplete="off" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;">
-        <button type="button" id="ru-app-email-submit">Avanti</button>
+        <button type="button" id="ru-app-email-submit" class="apply-button">Avanti</button>
         <p class="ru-app-error"></p>
       </div>
     `);
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <p class="ru-app-intro">Ancora un attimo per confermare che sei proprio tu.</p>
         <label>Qual è il tuo numero di cellulare?</label>
         <input type="tel" id="ru-app-phone" autocomplete="tel" required>
-        <button type="button" id="ru-app-phone-submit">Invia codice</button>
+        <button type="button" id="ru-app-phone-submit" class="apply-button">Invia codice</button>
         <p class="ru-app-error"></p>
       </div>
     `);
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       post('ru_application_send_sms_code', { post_id: postId, phone }).then((res) => {
         if (!res.success) return renderError(res.message);
-        showSmsCodeStep(postId);
+        showSmsCodeStep(postId, phone);
       });
     };
 
@@ -123,12 +123,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function showSmsCodeStep(postId) {
+  function showSmsCodeStep(postId, phone) {
     render(`
       <div class="ru-app-step">
         <label>Inserisci il codice che ti abbiamo mandato via SMS.</label>
         <input type="text" id="ru-app-code" inputmode="numeric" maxlength="6" required>
-        <button type="button" id="ru-app-code-submit">Conferma</button>
+        <button type="button" id="ru-app-code-submit" class="apply-button">Conferma</button>
+        <p><button type="button" id="ru-app-code-resend" class="ru-app-link-button">Non hai ricevuto il codice? Invia di nuovo</button></p>
         <p class="ru-app-error"></p>
       </div>
     `);
@@ -146,6 +147,11 @@ document.addEventListener('DOMContentLoaded', function () {
     root.querySelector('#ru-app-code-submit').addEventListener('click', submit);
     root.querySelector('#ru-app-code').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') submit();
+    });
+    root.querySelector('#ru-app-code-resend').addEventListener('click', () => {
+      post('ru_application_send_sms_code', { post_id: postId, phone }).then((res) => {
+        renderError(res.message); // el mismo endpoint devuelve mensaje tanto en éxito como en error
+      });
     });
   }
 
@@ -181,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="ru-app-step">
           <label class="ru-app-group-label">${q.label}</label>
           ${inputsHtml}
-          <button type="button" id="ru-app-field-submit">Avanti</button>
+          <button type="button" id="ru-app-field-submit" class="apply-button">Avanti</button>
           <p class="ru-app-error"></p>
         </div>
       `);
@@ -213,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="ru-app-step">
         <label>${q.label}</label>
         ${fieldHtml}
-        <button type="button" id="ru-app-field-submit">Avanti</button>
+        <button type="button" id="ru-app-field-submit" class="apply-button">Avanti</button>
         <p class="ru-app-error"></p>
       </div>
     `);
@@ -272,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return showPhoneStep(postId);
       }
       if (res.application_status === 'submitted') {
-        return render('<div class="ru-app-step"><p>Candidatura già inviata. Ti risponderemo a breve.</p></div>');
+        return render('<div class="ru-app-step"><p>Candidatura già ricevuta. Ti risponderemo a breve.</p></div>');
       }
       showQuestionStep(postId, 0);
     });

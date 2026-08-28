@@ -1,5 +1,16 @@
 # Changelog — RU Plugin
 
+## 2026-08-28
+
+**Pulido visual de la aplicación (`/applica/`) + reenvío de código SMS**
+
+- **CSS de la aplicación con especificidad reforzada**: todas las reglas `.ru-app-*` pasan a `#ru-application-root .ru-app-*` — sin esto, el reset de `hello-elementor` (misma especificidad, carga después) le ganaba el empate a reglas propias como el `border-radius` de los inputs.
+- Layout: `.ru-app-step` centrado (`margin:0 auto`), foco de inputs sin el glow azul default del navegador (reemplazado por un box-shadow sutil, sin sacar el indicador del todo por accesibilidad).
+- Botones: clase propia `.apply-button` (se descartó reusar `neonButton`/`mainButton` del hero — es específico de esa sección, no genérico).
+- **CSS del sitio consolidado** dentro del stylesheet del plugin (antes vivía suelto/page-scoped en Elementor): efecto de header al scroll, popups, texto con gradiente, glass effect, hover en `.container` de la página de Servicios, estilos de respuesta del Schema Audit.
+- **Reenvío de código SMS**: la pantalla de código ahora tiene "Non hai ricevuto il codice? Invia di nuovo" — reusa `ru_application_send_sms_code`, que ya generaba código nuevo y reseteaba los intentos de validación (antes solo se disparaba desde el paso del celular, sin forma de reintentar desde la pantalla del código).
+- Copy: intro de email sin em-dash, mensaje final de "ya enviada" corregido ("ricevuta" en vez de "inviata", más preciso para cuando se retoma la página).
+
 ## 2026-08-27
 
 **Aplicación al monoprodotto (Etapa A) + remitente de mail + fixes varios**

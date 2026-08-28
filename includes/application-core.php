@@ -296,7 +296,7 @@ function ru_application_submit() {
     // no hay motor de reglas. Alcanza con que la candidatura sea visible
     // en la lista nativa del CPT en wp-admin.
 
-    wp_send_json(['success' => true, 'message' => 'Candidatura inviata. Ti risponderemo a breve.']);
+    wp_send_json(['success' => true, 'message' => 'Grazie mille! Abbiamo ricevuto la tua candidatura. La leggiamo con calma e ti contattiamo via email o WhatsApp per i prossimi passi.']);
 }
 
 // ---------------------------------------------------------------------
