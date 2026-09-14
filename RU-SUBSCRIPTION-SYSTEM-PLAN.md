@@ -494,6 +494,33 @@ primeras oportunidades concretas.
   intracomunitaria para España, y decidir cómo/cuándo comunicar el extra
   cost argentino en el copy del checkout.
 
+## 7.9 Confirmado (14 sep 2026) — Checkout probado end-to-end en Sandbox
+
+Flujo completo verificado con un pago de test real: Stripe Payment Link
+→ webhook (`POST /wp-json/ru/v1/stripe-webhook`) → `ru_client_plan`
+activado → mail de confirmación recibido (con ~24 min de demora, a
+investigar aparte — no bloqueante).
+
+**Tres bugs reales encontrados y corregidos en el camino** (no solo
+config, quedan documentados porque afectan cualquier integración futura
+con la API de Stripe):
+
+1. La API actual de Stripe puede mandar `invoice_payment.paid` en vez de
+   (o además de) `invoice.payment_succeeded` — objeto distinto, sin email
+   ni metadata directo, solo una referencia `invoice` a pedir aparte.
+2. `lines.data[].price` ya no viene expandido con metadata en la API
+   actual — solo un ID en `lines.data[].pricing.price_details.price`.
+   Hay que pedir el Price aparte por su ID.
+3. **La metadata de un Price no se puede cargar desde el dashboard de
+   Stripe** (confirmado, no hay UI para eso) — solo desde el Product. El
+   código en `billing.php` ahora hace fallback a la metadata del Product
+   si el Price no tiene nada.
+
+**Deuda pendiente, no bloqueante**: investigar la demora de 24 min en la
+entrega del mail (probablemente cola de Brevo o config de WP Mail SMTP,
+no del código del webhook en sí — el webhook respondió 200 casi
+instantáneo).
+
 ## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
 
 **Parte 1 — De la compra a la activación**
