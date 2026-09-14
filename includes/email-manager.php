@@ -123,6 +123,9 @@ function riseup_send_email($args = []) {
         'application-approved', 'application_approved' => 'email-templates/application-approved-template.php',
         'application-rejected', 'application_rejected' => 'email-templates/application-rejected-template.php',
         'payment-links', 'payment_links'       => 'email-templates/payment-links-template.php',
+        'site-preview', 'site_preview'         => 'email-templates/site-preview-template.php',
+        'site-approved', 'site_approved'       => 'email-templates/site-approved-template.php',
+        'site-download', 'site_download'       => 'email-templates/site-download-template.php',
         default                               => ''
     };
 
