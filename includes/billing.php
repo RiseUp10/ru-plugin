@@ -265,6 +265,14 @@ function ru_stripe_extract_billing_data(array $event): array {
             $price = ru_stripe_fetch_price($price_id);
             $debug_price_fetched = $price !== null; // null = la llamada a la API falló
             $metadata = $price['metadata'] ?? [];
+
+            // Fallback: si la metadata se cargó en el Product en vez del
+            // Price (son objetos separados en Stripe, cada uno con la
+            // suya) — el Price trae el product ID en $price['product'].
+            if (empty($metadata) && is_string($price['product'] ?? null)) {
+                $product = ru_stripe_fetch_product($price['product']);
+                $metadata = $product['metadata'] ?? [];
+            }
         }
     }
 
@@ -314,6 +322,21 @@ function ru_stripe_fetch_price(string $price_id): ?array {
     if (!$secret_key) return null;
 
     $res = wp_remote_get("https://api.stripe.com/v1/prices/{$price_id}", [
+        'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
+        'timeout' => 10,
+    ]);
+
+    if (is_wp_error($res)) return null;
+
+    $body = json_decode(wp_remote_retrieve_body($res), true);
+    return is_array($body) ? $body : null;
+}
+
+function ru_stripe_fetch_product(string $product_id): ?array {
+    $secret_key = ru_stripe_secret_key();
+    if (!$secret_key) return null;
+
+    $res = wp_remote_get("https://api.stripe.com/v1/products/{$product_id}", [
         'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
         'timeout' => 10,
     ]);
