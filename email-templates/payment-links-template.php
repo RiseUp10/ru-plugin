@@ -17,9 +17,14 @@
         ricorrente da completare.</p>
     <?php endif; ?>
 
-    <?php if (!empty($contract_url)): ?>
-        <p>Prima di procedere, puoi leggere il contratto qui:
-        <a href="<?= esc_url($contract_url) ?>" style="color:#EEEBEB;">contratto</a>.</p>
+    <?php if (!empty($contract_summary)): ?>
+        <p><strong>Riepilogo di cosa hai scelto:</strong></p>
+        <p style="white-space:pre-line; border-left:2px solid #EEEBEB; padding-left:12px;"><?= nl2br(esc_html($contract_summary)) ?></p>
+    <?php endif; ?>
+
+    <?php if (!empty($terms_url)): ?>
+        <p style="font-size:12px; color:#bbb;">Questo riepilogo si aggiunge alle
+        <a href="<?= esc_url($terms_url) ?>" style="color:#bbb;">Condizioni Generali</a> complete, che restano valide per tutto il resto.</p>
     <?php endif; ?>
 
     <p>Hai un dubbio nel frattempo? Rispondi pure a questa email — ti

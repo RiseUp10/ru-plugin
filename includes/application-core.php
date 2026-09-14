@@ -434,6 +434,8 @@ add_action('edit_form_after_title', function ($post) {
             echo '<option value="' . esc_attr($value) . '" ' . selected($current_plan, $value, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></p>';
+        echo '<p><label>Riepilogo contratto (incluso nel corpo dell\'email — scrivi qui cosa include esattamente: piano, add-on, prezzo totale, round di revisione, e la clausola di stabilità del prezzo)<br>';
+        echo '<textarea name="ru_delivery_contract_summary" rows="6" style="width:100%; max-width:600px;">' . esc_textarea($get('ru_delivery_contract_summary')) . '</textarea></label></p>';
         echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
         $last_sent = $get('ru_delivery_payment_links_sent_at');
         if ($last_sent) {
@@ -472,6 +474,10 @@ add_action('save_post_ru_application', function ($post_id) {
     $plan = sanitize_key($_POST['ru_delivery_plan'] ?? '');
     update_post_meta($post_id, 'ru_delivery_plan', $plan);
 
+    if (isset($_POST['ru_delivery_contract_summary'])) {
+        update_post_meta($post_id, 'ru_delivery_contract_summary', sanitize_textarea_field($_POST['ru_delivery_contract_summary']));
+    }
+
     if (empty($_POST['ru_delivery_send_payment_links'])) return; // checkbox no tildado, no manda nada
 
     $email = get_post_meta($post_id, 'email', true);
@@ -482,9 +488,10 @@ add_action('save_post_ru_application', function ($post_id) {
         'subject'  => 'I link per procedere con RiseUp',
         'template' => 'payment-links',
         'data'     => [
-            'site_url'      => defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '',
-            'plan_url'      => ru_delivery_plan_checkout_url($plan),
-            'contract_url'  => defined('RU_CONTRACT_URL') ? RU_CONTRACT_URL : '',
+            'site_url'          => defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '',
+            'plan_url'          => ru_delivery_plan_checkout_url($plan),
+            'contract_summary'  => get_post_meta($post_id, 'ru_delivery_contract_summary', true),
+            'terms_url'         => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
         ],
     ]);
 
@@ -525,11 +532,11 @@ if (!defined('RU_ONBOARDING_FORM_URL')) {
     define('RU_ONBOARDING_FORM_URL', '');
 }
 
-// TODO: reemplazar por la URL real del contrato dinámico (sección 7.10)
-// una vez armado — mientras esté vacío, el mail de payment-links no
-// muestra el link.
-if (!defined('RU_CONTRACT_URL')) {
-    define('RU_CONTRACT_URL', '');
+// TODO: reemplazar por la URL real de la página de Condizioni Generali
+// en el sitio (sección 7.10) — mientras esté vacío, el mail de
+// payment-links no muestra el link de referencia.
+if (!defined('RU_TERMS_URL')) {
+    define('RU_TERMS_URL', '');
 }
 
 add_action('ru_application_decision_approved', function ($post_id) {

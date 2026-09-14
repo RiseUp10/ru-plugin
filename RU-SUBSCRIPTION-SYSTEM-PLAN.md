@@ -373,14 +373,15 @@ Confirmado en conversación al analizar los 3 flujos base del monoprodotto
   CLAUDE.md).
 - **Rondas de revisión en Acceptance (afina §7.6 punto 3, no lo
   contradice)**: se confirma 1 ronda gratis tal como ya estaba escrito.
-  A partir de la 2da ronda, **recomendado (a confirmar): 40€ flat por
-  ronda** (no facturación por hora real) — parte de la base ~35€/h ya
-  usada para add-ons en `ESTRATEGIA-MONOPRODUCTO.md`, redondeado a bloque
-  fijo para no tener que trackear/justificar tiempo frente al cliente
-  (mismo criterio de mínimo contacto/una sola decisión que el resto del
-  pricing). Pedidos grandes (páginas nuevas, reescritura de copy) no
-  entran acá — caen en los add-ons ya tarifados (`Página extra`,
-  `Copywriting`).
+  A partir de la 2da ronda, **40€ flat por ronda sin abono activo, 30€
+  con abono activo** (decidido 14 sep 2026 — diferencial como incentivo
+  de retención de la suscripción) — no facturación por hora real, parte
+  de la base ~35€/h ya usada para add-ons en `ESTRATEGIA-MONOPRODUCTO.md`,
+  redondeado a bloque fijo para no tener que trackear/justificar tiempo
+  frente al cliente (mismo criterio de mínimo contacto/una sola decisión
+  que el resto del pricing). Pedidos grandes (páginas nuevas, reescritura
+  de copy) no entran acá — caen en los add-ons ya tarifados (`Página
+  extra`, `Copywriting`).
   **Mecanismo operativo, resuelto (5 sep 2026)**: no requiere nada nuevo
   en `ru-plugin`/Make — no gatilla ningún cambio de estado persistente
   (no activa/desactiva plan, no publica nada por sí solo), así que se
@@ -404,9 +405,11 @@ Confirmado en conversación al analizar los 3 flujos base del monoprodotto
   `legal/condizioni-generali-v2-monoprodotto.md`, que además fija la
   frontera formal entre esto y la ronda de revisión del art. 11.2, para
   que una ronda de revisión no se use para colar un rediseño gratis.
-  **Decidido**: tarifa **35€/h** (misma base que los add-ons, no la
-  premium de 50€/h que se había sugerido — a este ritmo por ahora),
-  **sin mínimo de horas** (se obvia por el momento, reevaluar si genera
+  **Decidido**: tarifa **35€/h sin abono activo, 25€/h con abono activo**
+  (diferencial agregado 14 sep 2026, mismo criterio de retención que en
+  las rondas de revisión de arriba) — base sin abono es la misma que los
+  add-ons, no la premium de 50€/h que se había sugerido.
+  **Sin mínimo de horas** (se obvia por el momento, reevaluar si genera
   fricción de negociación en pedidos muy chicos), siempre con
   **presupuesto cerrado** (horas estimadas × tarifa, monto total) antes
   de empezar — nunca hora suelta abierta. Se cobra igual que el add-on
