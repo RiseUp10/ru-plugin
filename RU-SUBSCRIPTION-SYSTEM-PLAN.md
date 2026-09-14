@@ -187,6 +187,313 @@ ya existe), y validación real de formato de teléfono en
 `ru_normalize_phone()` (hoy solo limpia caracteres, no confirma que sea
 un número válido).
 
+## 7.6 Pendiente — Etapa B: aprobación y entrega del Sitio
+
+Definido en conversación (29-31 ago 2026), en paralelo al trabajo sobre
+`legal/condizioni-generali-v2-monoprodotto.md` (art. 8.1 y 11.2 de ese
+documento son la fuente de verdad legal de este flujo — mantenerlos
+sincronizados si algo de esto cambia).
+
+**Flujo de aprobación** (reusa el mecanismo de magic link de
+`verification.php`, un `type` nuevo, no un sistema de login):
+
+1. Mail "tu sitio está listo" (remitente personal, no no-reply) con un
+   magic link único. El link en sí es la confirmación de identidad — no
+   hay paso separado de "confirmá tu identidad" antes del draft, sería
+   fricción de más.
+2. Click → preview del draft. Dos botones: **Aprobar** / **Pedir un
+   cambio** (campo de texto acotado, no chat abierto).
+3. Si pide cambio: Rise Up ajusta y reenvía un único link nuevo. Una sola
+   ronda de revisión — más cambios que eso quedan fuera del paquete
+   estándar (art. 3.1 del contrato: personalizaciones extra requieren
+   acuerdo y corrispettivo separado).
+4. Si aprueba: se loggea timestamp + IP + token + versión/hash exacto
+   del sitio mostrado (valor probatorio — ver art. 11.2 del contrato).
+   Dispara mail de confirmación automático: *"confirmamos que aprobaste
+   la versión X el [fecha/hora]; si no fue así, avisanos en 24hs."*
+   Las 24hs son solo ventana de objeción legal, no bloquean nada — la
+   publicación (o entrega, ver abajo) ya ocurrió en este mismo paso.
+
+**Qué pasa según si hay abono activo** (art. 8.1/11.2 del contrato):
+
+- **Con suscripción activa** (Manutenzione o Hiperlocal): el sitio se
+  publica online en el momento de la aprobación. Es el camino esperado
+  para casi todos los casos — Rise Up va a empujar comercialmente hacia
+  acá.
+- **Sin suscripción activa**: no hay hosting de parte de Rise Up (ni
+  dominio, ni publicación, ni mantenimiento — así quedó en el art. 8.1).
+  En vez de eso, la aprobación dispara la entrega de un paquete de
+  migración estándar de WordPress: archivos (`wp-content/themes`,
+  `wp-content/uploads`, plugins necesarios) + export SQL de la base de
+  datos, empaquetados juntos con una herramienta tipo **Duplicator**
+  (o All-in-One WP Migration free) — no un export estático en HTML, para
+  que el cliente conserve un sitio WordPress/Elementor realmente
+  editable, no una foto congelada. Se entrega igual que la aprobación:
+  mail con un **link de descarga temporal** (no adjunto directo — evita
+  límites de tamaño de email y permite loggear cuándo se descargó, mismo
+  criterio probatorio que el resto del flujo), nunca el archivo pegado
+  al mail.
+
+**Dependencia técnica a resolver antes de que el export sin suscripción
+funcione de verdad**: el formulario de contacto del sitio usa el
+mecanismo de doble opt-in de `ru-plugin`, que vive en `riseup.marketing`
+— si el cliente se lleva el sitio a otro hosting, el form se rompe sin
+ese plugin. Decisión: en el momento del export para un cliente sin
+abono, swapear el form por un plugin free liviano y reconocido — hoy la
+opción de referencia es **Contact Form 7**, pero no es una elección
+cerrada: si más adelante hace falta algo que CF7 no cubra bien (lógica
+condicional, mejor UI de configuración), evaluar Fluent Forms u otra
+alternativa sin atarse a esta desde ya. Los clientes con suscripción
+activa siguen usando el form vía `ru-plugin` normalmente, no hace falta
+swap para ellos.
+
+**Pendiente de implementación**: el `type` nuevo de magic link para
+aprobación de sitio (extensión de `verification.php`), el logueo de
+IP/timestamp/versión, el trigger de export+swap de form para clientes
+sin abono, y la integración con Duplicator/AIO WP Migration.
+
+### 7.6.1 Decisiones de sesión (1 sep 2026) — Flow 2 (Approval) y afinado de Flow 3
+
+Confirmado en conversación al analizar los 3 flujos base del monoprodotto
+(Applying / Approval / Acceptance):
+
+- **Mail de aprobación de la Etapa A (Flow 2) — automático**: al marcar la
+  aplicación como aprobada en wp-admin (cambio de status del CPT
+  `ru_application`), se dispara solo el mail con el Google Form de
+  onboarding + link de pago — no lo escribe el founder a mano cada vez.
+  Contraste con el rechazo, que sigue siendo manual/fuera del sistema (ya
+  decidido en §7.5).
+- **Herramienta de onboarding de la Etapa B — Google Form, no Google
+  Doc** (corrige la mención a "Google Doc" que queda en
+  `ESTRATEGIA-MONOPRODUCTO.md`, desactualizada): un Doc de texto libre
+  termina en respuestas inconsistentes/incompletas por cliente. Un Form
+  da preguntas con tipo definido (texto corto, opción múltiple, carga de
+  archivo para logo/fotos — soportado nativo) sin desarrollo nuevo. Se
+  evaluó ir directo a un widget nativo en el sitio (mismo patrón que la
+  Etapa A: CPT propio, guardado progresivo por AJAX) y se descartó **por
+  ahora**: es esfuerzo comparable a lo que ya llevó construir la Etapa A,
+  para una etapa de mucho menor volumen (solo aplicaciones ya aprobadas)
+  — mismo criterio de no automatizar de más antes de validar el funnel
+  completo con datos reales, usado también para no automatizar la
+  aprobación en v1 (§7.5). Reevaluar el widget nativo como mejora de v2
+  si el volumen lo justifica. Única fricción del Form: requiere cuenta
+  Google del cliente para subir archivos — aceptable acá porque ya pagó
+  1€ y verificó email+celular en la Etapa A, más compromiso que un lead
+  frío de tope de embudo.
+
+  **Preguntas del Form (borrador, 5 sep 2026)**:
+  1. Partita IVA o Codice Fiscale (o, alternativa: confirmar que es admin
+     del Google Business Profile del negocio)
+  2. ¿Tiene dominio propio? ¿Cuál? (requerido antes de publicar, art. 4.8
+     del contrato)
+  3. Elegir estilo mirando el showcase (`esempi.riseup.marketing`, ver
+     abajo) — con opción de mezclar elementos de looks distintos
+  4. Logo (carga de archivo) o, si no tiene, colores preferidos
+  5. **Menú fijo cerrado (5 sep 2026)**, reemplaza el "etc." abierto de
+     `ESTRATEGIA-MONOPRODUCTO.md`: **Contatto / Servizi / Chi Siamo /
+     Blog / Galleria d'immagini (fino a 12 immagini) / FAQ / Prodotti
+     (fino a 6, con immagine, nome e prezzo opzionale)**. El cliente
+     elige hasta 3 de estos.
+     - `Prodotti` y `Galleria` llevan tope fijo deliberado: permite un
+       solo template de grid (6 y 12 respectivamente, se ocultan las
+       tarjetas no usadas) sin lógica dinámica/paginación. Si un cliente
+       necesita más, empuja hacia los add-ons ya tarifados en
+       `ESTRATEGIA-MONOPRODUCTO.md` (`Catalogo de productos`, `Carga de
+       productos/servicios`) — el tope es justamente lo que marca ese
+       corte.
+     - `Prodotti` es una versión liviana de presentación (sin
+       estructura/filtros) — **distinta** del add-on pago "Catalogo de
+       productos", que sí implica setup estructurado. Aclarar la
+       diferencia en el propio Form para que no se confundan.
+     - Precio en `Prodotti` es opcional (no todos los rubros — ej.
+       consultoría profesional — quieren precio público).
+     - Wording del Form evita la jerga técnica "Home": en vez de "Oltre
+       alla Home...", usar algo como *"Oltre alla presentazione della
+       tua attività (il cuore del tuo sito), scegli fino a 3 argomenti
+       in più tra: [menú fijo de arriba]..."* — describe el contenido,
+       no la etiqueta técnica de página, coherente con que además puede
+       no ser ni siquiera una página separada (ver punto siguiente).
+     - **Aclarar también en el Form que el mismo contenido se puede
+       entregar como páginas separadas con menú, o como un único sitio
+       "a scorrimento" (one page, todas las secciones en una sola
+       página con links de ancla)**. Mismo alcance/precio en ambos
+       casos — es una decisión de formato, no de scope (la pregunta es
+       "cuántos temas/secciones", "página separada vs. one-page" es
+       aparte). Efecto colateral técnico favorable: un cliente que
+       elige one-page no necesita el widget Nav Menu con dropdown entre
+       páginas (pendiente de confirmar si es free o Pro en la
+       instalación actual, ver `CLAUDE.md`) — alcanza con anchors
+       nativos dentro de la misma página, evitando ese punto pendiente
+       por completo.
+  6. Carga de imágenes/fotos (archivo)
+  7. Textos por página (o relato libre para que RiseUp los redacte —
+     nota: copy profesional es add-on aparte)
+  8. Add-ons opcionales (idioma extra, página extra, catálogo, ecommerce,
+     copywriting, branding)
+  9. Suscripción opcional (Manutenzione / Hiperlocal)
+
+  No se repiten acá las preguntas de identidad del negocio (nombre,
+  relato, objetivo, sitio/social actual, ubicación) — ya recolectadas en
+  la Etapa A. Al completar el Form se manda el link de pago final (sitio
+  + extras elegidos + primer mes de abono si corresponde).
+
+  **Operativa de los archivos subidos (logo, fotos, preguntas 4 y 6)**:
+  los archivos caen en una carpeta de Drive asociada a la cuenta dueña
+  del Form — **confirmado: cuenta de Gmail propia de Rise Up, no
+  personal** (no es un pendiente, ya está resuelto). Para cruzar
+  archivo↔cliente sin ambigüedad (nombres de archivo genéricos se
+  repiten entre clientes, ej. "logo.png"), vincular el Form a una
+  Google Sheet de respuestas (cada fila trae el link directo al archivo
+  de esa respuesta) — no navegar la carpeta de Drive a ojo. **Pendiente
+  de implementación**: el mail automático de aprobación (§ arriba) debe
+  llevar un link **prellenado** al Form (con email/ID de la aplicación
+  ya cargado) para que cada respuesta llegue identificable contra el
+  `ru_application` correspondiente sin cruce manual.
+- **Selección de "template" en la Etapa B (Flow 2) — sitio de muestra, no
+  RiseUp eligiendo unilateralmente**: el cliente elige mirando un sitio/
+  set de páginas de muestra con las variantes visuales disponibles, no
+  solo describiendo estilo en un formulario a ciegas. Fusiona con el
+  catálogo de secciones/variantes del motor de ensamblado (ver
+  `CLAUDE.md` del workspace, "Próximos Pasos") — construir esos templates
+  de Elementor como páginas reales de muestra sirve doble propósito:
+  catálogo de trabajo interno + vidriera que el cliente recorre.
+  **Resuelto: subdominio aparte** (propuesto `esempi.riseup.marketing`,
+  a confirmar nombre), instalación WP separada (no multisite, no
+  Theme Builder/widgets Pro — mismo criterio anti-lock-in que los sitios
+  de cliente), con una única paleta neutra site-wide (Global Colors es
+  ajuste site-wide, no por página — el showcase compara estructura/
+  layout por slot, no color; color/tipografía se resuelve por cliente
+  vía Google Form + logo, no necesita showcase). MVP: 2-3 "looks"
+  completos de Home únicamente (no las 4 páginas todavía), cada uno
+  guardado también como Elementor Templates por slot para poder mezclar
+  en producción si el cliente lo pide. `noindex` en las páginas del
+  showcase. A futuro, esta instalación es la base para exportar los
+  `.json` del catálogo versionado en git (motor de ensamblado, ver
+  CLAUDE.md).
+- **Rondas de revisión en Acceptance (afina §7.6 punto 3, no lo
+  contradice)**: se confirma 1 ronda gratis tal como ya estaba escrito.
+  A partir de la 2da ronda, **recomendado (a confirmar): 40€ flat por
+  ronda** (no facturación por hora real) — parte de la base ~35€/h ya
+  usada para add-ons en `ESTRATEGIA-MONOPRODUCTO.md`, redondeado a bloque
+  fijo para no tener que trackear/justificar tiempo frente al cliente
+  (mismo criterio de mínimo contacto/una sola decisión que el resto del
+  pricing). Pedidos grandes (páginas nuevas, reescritura de copy) no
+  entran acá — caen en los add-ons ya tarifados (`Página extra`,
+  `Copywriting`).
+  **Mecanismo operativo, resuelto (5 sep 2026)**: no requiere nada nuevo
+  en `ru-plugin`/Make — no gatilla ningún cambio de estado persistente
+  (no activa/desactiva plan, no publica nada por sí solo), así que se
+  cobra 100% fuera del sistema técnico. Preparar de antemano **Stripe
+  Payment Links reutilizables** (vía WP Simple Pay) por cada precio fijo
+  ya definido (40€ ronda extra, y uno por cada add-on de precio único) —
+  se pega el link que corresponda en la respuesta personal por mail. No
+  se arranca el trabajo hasta ver el pago (mismo criterio que el resto
+  del funnel: se cobra antes de producir). Para add-ons de **rango**
+  (ej. "Página extra 50-70€"), usar **Stripe Invoicing** ad-hoc con el
+  monto negociado en vez de un link fijo. **Qué pasa si el cliente pide
+  una 2da ronda y no la paga**: no se manda un nuevo link de preview, el
+  ciclo queda pausado en la última versión ya mostrada — si el cliente
+  igual la aprueba, sigue el flujo normal de publicación/entrega.
+- **Personalización de diseño fuera del catálogo (nuevo, 5 sep 2026) —
+  distinto de la ronda de revisión de arriba**: cuando el pedido no es
+  un ajuste dentro de la variante de estilo ya elegida sino una sección/
+  layout que ninguna variante del catálogo cubre ("que quede más
+  bonito", diseño custom) — no tiene precio flat posible de antemano.
+  Base legal: art. 3.1 bis (nuevo) de
+  `legal/condizioni-generali-v2-monoprodotto.md`, que además fija la
+  frontera formal entre esto y la ronda de revisión del art. 11.2, para
+  que una ronda de revisión no se use para colar un rediseño gratis.
+  **Decidido**: tarifa **35€/h** (misma base que los add-ons, no la
+  premium de 50€/h que se había sugerido — a este ritmo por ahora),
+  **sin mínimo de horas** (se obvia por el momento, reevaluar si genera
+  fricción de negociación en pedidos muy chicos), siempre con
+  **presupuesto cerrado** (horas estimadas × tarifa, monto total) antes
+  de empezar — nunca hora suelta abierta. Se cobra igual que el add-on
+  de rango de arriba: **Stripe Invoicing** con el monto ya cotizado.
+
+**Sigue abierto, no resuelto hoy**: qué pasa si el cliente aprobado no
+completa el Google Doc o no paga después de la aprobación — no hay
+recordatorio/seguimiento definido para este punto del funnel (sí existe
+para abandonos de la Etapa A, ver §7.5).
+
+## 7.7 Decisión (14 sep 2026) — Webhooks nativos de Stripe en vez de día 28/35 + planilla
+
+**Cambia** el mecanismo de renovación/gracia/downgrade descrito en la Parte 2
+de la sección 7 (abajo). **No cambia** la regla madre (sección 0): Hub decide,
+Make orquesta, ninguna decisión de negocio vive en Make.
+
+- **Antes (patrón SC, con deuda conocida)**: Make escucha el webhook nativo
+  de WP Simple Pay solo en el checkout inicial; el sostenimiento de la
+  suscripción (aviso día 28, downgrade día 35) lo hace una revisión
+  periódica aparte que lee la planilla de Google Sheets y detecta vencidos
+  a mano. El propio doc admite (sección 1) que ni en SC está bien auditado
+  el detalle de este mecanismo — dos caminos de eventos que pueden
+  desincronizarse.
+- **Ahora, para RU**: se usan los webhooks nativos del ciclo de vida de
+  Stripe (`invoice.payment_failed`, `invoice.payment_succeeded`,
+  `customer.subscription.updated`, `customer.subscription.deleted`) como
+  disparador real, en vez de un timer casero. Motivo: WP Simple Pay ya crea
+  suscripciones reales de Stripe por debajo (esto no es nuevo, ya corre
+  así) — el único cambio es a qué eventos reacciona Make/hub para decidir
+  downgrade. Stripe Smart Retries reemplaza el reintento fijo de "7 días
+  después del aviso"; el comportamiento al agotar reintentos (cancelar
+  suscripción) se configura en Stripe, no se recalcula a mano.
+- **No cambia el costo**: el fee de Stripe Billing sobre pagos recurrentes
+  (si aplica según volumen) ya se paga por tener suscripciones vía WP
+  Simple Pay, independientemente de este mecanismo — no es un costo nuevo
+  de esta decisión. Verificar el número vigente en la página de precios de
+  Stripe antes de presupuestar.
+- **Resuelto (14 sep 2026): el webhook llega directo, sin pasar por Make**.
+  No se copia la estructura de archivos de SC (Main+Shop separados, Make
+  como puente obligado) porque en RU no aplica — WP Simple Pay y el hub
+  viven en el mismo WordPress. El webhook de Stripe (firma verificada con
+  `STRIPE_WEBHOOK_SECRET`, no un secret inventado) llega directo a
+  `includes/billing.php` (`POST /ru/v1/stripe-webhook`), que llama directo
+  a los handlers de activate/downgrade — sin `do_action`/Make en el medio.
+  No existe `includes/make.php`. Eventos usados: `invoice.payment_succeeded`
+  (activate) y `customer.subscription.deleted` (downgrade, ya agotados los
+  Smart Retries de Stripe). El plan/interval viaja en la metadata del Price
+  de Stripe (`ru_plan`, `ru_interval`) — se setea al crear cada uno de los
+  6 Prices.
+- **Calendario de reintentos/gracia**: configurar en Stripe (Billing →
+  Subscriptions settings) para que coincida con el margen ya definido en
+  `ESTRATEGIA-MONOPRODUCTO.md`. Pendiente de hacer, no de diseñar.
+- **Make queda afuera del camino crítico**: si se usa, es para
+  control/auditoría (Sheets, Slack, fatturazione vía A-Cube/FatturaExpress
+  — ver sección 7.8) sin lógica de negocio, nunca como gate de una
+  decisión de activar/desactivar. `Subscriptions Audit` (sección 3.C,
+  "opcional más adelante"), si se clona, es puramente informativo.
+
+## 7.8 Nota (14 sep 2026) — Expansión a España y Argentina, research preliminar
+
+No bloquea nada de lo que se está construyendo hoy — queda anotado por si
+se retoma. Contexto: el foco pasó de "marketing local Lombardia" a un
+sistema de creación de sitios masivo, vendible a cualquier país (ver
+memoria `riseup_mass_site_business_model`); España y Argentina son las
+primeras oportunidades concretas.
+
+- **España (fácil, ya cubierto por el stack elegido)**: B2B (caso más
+  probable dado el tipo de cliente) → reverse charge, sin IVA en la
+  factura, requiere alta en el registro de operadores intracomunitarios
+  (equivalente italiano al ROI) — a confirmar con el commercialista. B2C →
+  régimen **OSS**, se cobra IVA español (21%) pero se declara todo desde
+  Italia, sin registro aparte en España. A-Cube/FatturaExpress ya declaran
+  soporte para esto (sección 7.7 y research de facturación).
+- **Argentina (compliance no recae en RiseUp, pero afecta precio/comunicación)**:
+  IVA del 21% sobre servicios digitales del exterior lo retiene el
+  banco/tarjeta del cliente argentino al pagar, no RiseUp. Se suma una
+  percepción ~30% a cuenta de Ganancias/Bienes Personales sobre la
+  conversión a pesos (+ percepciones provinciales en algunos casos desde
+  2025) — el cliente termina pagando bastante más que el precio nominal.
+  **Implicancia de producto, no técnica**: avisar este extra cost de
+  entrada en el checkout/pricing para clientes argentinos, coherente con
+  el principio de "sin sorpresas, explicar qué pasa". Verificar estado del
+  cepo cambiario para pagos con tarjeta en moneda extranjera cerca de la
+  fecha de lanzamiento a ese mercado — cambia rápido.
+- **Pendiente real si se retoma**: confirmar con el commercialista el alta
+  intracomunitaria para España, y decidir cómo/cuándo comunicar el extra
+  cost argentino en el copy del checkout.
+
 ## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
 
 **Parte 1 — De la compra a la activación**

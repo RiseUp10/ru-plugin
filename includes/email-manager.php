@@ -118,6 +118,8 @@ function riseup_send_email($args = []) {
         'schema', 'schema-audit', 'schema_audit' => 'email-templates/schema-audit-template.php',
         'guides', 'guide', 'resource'         => 'email-templates/guides-template.php',
         'confirm-audit', 'confirm_audit'      => 'email-templates/confirm-audit-template.php',
+        'subscription-activated', 'subscription_activated' => 'email-templates/subscription-activated-template.php',
+        'subscription-cancelled', 'subscription_cancelled' => 'email-templates/subscription-cancelled-template.php',
         default                               => ''
     };
 
