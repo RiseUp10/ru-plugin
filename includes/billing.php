@@ -173,13 +173,17 @@ function ru_stripe_webhook_endpoint(WP_REST_Request $r) {
         set_transient($dedup_key, 1, DAY_IN_SECONDS);
     }
 
+    $debug = null; // TODO: sacar este bloque de debug una vez que el flujo ande — ver sección 7.9
+
     switch ($type) {
         case 'invoice.payment_succeeded':
         case 'invoice_payment.paid': // API version nueva — mismo hecho, objeto distinto
-            ru_billing_handle_subscription_activate(ru_stripe_extract_billing_data($event));
+            $debug = ru_stripe_extract_billing_data($event);
+            ru_billing_handle_subscription_activate($debug);
             break;
         case 'customer.subscription.deleted':
-            ru_billing_handle_subscription_downgrade(ru_stripe_extract_billing_data($event));
+            $debug = ru_stripe_extract_billing_data($event);
+            ru_billing_handle_subscription_downgrade($debug);
             break;
         default:
             // Tipo de evento que no nos interesa — Stripe manda muchos.
@@ -187,7 +191,7 @@ function ru_stripe_webhook_endpoint(WP_REST_Request $r) {
             break;
     }
 
-    return new WP_REST_Response(['ok' => true], 200);
+    return new WP_REST_Response(['ok' => true, 'type' => $type, 'debug' => $debug], 200);
 }
 
 // Verificación manual de la firma (mismo algoritmo que el SDK oficial de
