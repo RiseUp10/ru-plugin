@@ -572,43 +572,45 @@ Las llamadas/mails para decidir qué plan quiere el cliente siguen siendo
 100% manuales — este mecanismo solo automatiza el envío final de los
 links, no la conversación previa.
 
-## 7.11 Decisión (14 sep 2026) — Flow 3 (Acceptance) implementado
+## 7.11 Decisión (14 sep 2026) — Flow 3 (Acceptance), versión simplificada
 
-Mismo `ru_application`, bloque nuevo en wp-admin visible solo tras
-aprobar (§7.10), gatillado por `includes/delivery-core.php`:
+Primer diseño incluía una página `/anteprima/` con AJAX (botón Conferma +
+textarea de feedback) — **descartado**: no hacía falta ni la página ni
+el JS. Versión final, en `includes/delivery-core.php`:
 
-- **URL de preview** (campo manual) + checkbox de envío (mismo patrón
-  auto-reset que Flow 1/2) → mail `site-preview` con link a
-  `/anteprima/` (`[ru_site_preview]`, página a crear en Elementor).
-- **Rondas de revisión incluidas**: campo numérico editable por
-  candidatura (default 1) — depende de lo contratado, no un número fijo
-  para todos. **El sistema no bloquea pedir más rondas de las
-  incluidas** — solo cuenta y avisa (mail interno a
-  `riseup.businessmaker@gmail.com` marca "⚠️ ya superó las incluidas" si
-  corresponde). Cobrar la ronda extra sigue siendo 100% manual, mismo
-  criterio que las rondas de revisión de §7.6.1.
-- **La página de preview** tiene el link a la anteprima, el mismo
-  disclaimer de rondas incluidas (no solo en el mail — se repite ahí
-  porque es el momento real en que importa), botón **"Conferma"** y un
-  textarea + botón "Richiedi una modifica" — AJAX simple, sin login.
-- **Al confirmar**: se loguea `timestamp` + `IP` (respaldo legal art.
-  11.2), mail `site-approved` al cliente, estado visible en el admin.
-- **Al pedir modificación**: guarda el feedback, incrementa el contador,
-  vuelve a estado "sent" implícito (el founder actualiza la preview URL
-  y re-tilda "enviar" para el siguiente round — reusa el mismo mail
-  `site-preview`, no hay template nuevo por ronda).
+- **URL de preview** (campo manual, dominio/staging que arme el founder
+  — fuera del alcance de este mecanismo) + checkbox de envío (mismo
+  patrón auto-reset que Flow 1/2) → mail `site-preview` con dos links:
+  "Vedi l'anteprima" (externo) y **"Conferma il sito"** (link simple,
+  mismo mecanismo GET que el doble opt-in de `verification.php` — sin
+  página, sin AJAX propio).
+- **Pedir un cambio no tiene mecanismo propio**: el mail dice
+  explícitamente "responde a este mail contándonos qué cambiar" — más
+  simple y más cálido que un formulario. El founder lo lee en su inbox
+  como cualquier otro mail.
+- **Rondas de revisión incluidas**: un solo campo numérico editable por
+  candidatura (default 1, depende de lo contratado — no fijo para
+  todos), mostrado también en el mail como disclaimer. **El sistema no
+  cuenta ni bloquea rondas** — es solo la cifra que se le muestra al
+  cliente; si hace falta cobrar una ronda extra, es 100% criterio y
+  gestión manual del founder (mismo principio que §7.6.1).
+- **Al confirmar**: loguea `timestamp` + IP (respaldo legal art. 11.2),
+  manda `site-approved`, muestra un mensaje simple de agradecimiento
+  (sin página nueva — `wp_die()` con el texto). Click repetido en el
+  mismo link no reprocesa ni reenvía.
 - **Descarga**: bloque aparte, visible solo si `ru_client_has_active_plan()`
   da `false` para el email de esa candidatura (con abono, no aplica —
-  hostea RiseUp). Campo de URL de descarga (manual, el export en sí
-  — Duplicator/AIO WP Migration — sigue sin automatizarse, sección 7.6)
-  + checkbox de envío, mismo patrón. Deliberadamente manual y separado
-  del mail de confirmación: el founder puede necesitar terminar algo del
-  sitio antes de que esté listo para exportar.
+  hostea RiseUp). Campo de URL de descarga (manual — el export en sí,
+  Duplicator/AIO WP Migration, sigue sin automatizarse, sección 7.6) +
+  checkbox de envío, mismo patrón. Deliberadamente separado del mail de
+  confirmación: el founder puede necesitar terminar algo del sitio antes
+  de que esté listo para exportar.
 
-**Pendiente real**: la página `/anteprima/` con el shortcode todavía no
-existe en Elementor. El export automático (Duplicator) sigue sin
+**Pendiente real**: el export automático (Duplicator) sigue sin
 construirse — el campo de URL de descarga asume que ya generaste el
-paquete a mano.
+paquete a mano. Dónde vive el staging/preview temporal tampoco está
+resuelto (queda como campo de texto libre, decisión de infraestructura
+aparte).
 
 ## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
 
