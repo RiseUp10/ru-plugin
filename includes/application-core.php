@@ -410,8 +410,86 @@ add_action('edit_form_after_title', function ($post) {
     echo '<p style="color:#666; font-size:12px;">Al salvare con "Approvata" o "Rifiutata" parte l\'email corrispondente — solo la prima volta che cambi lo stato, salvare di nuovo senza cambiarlo non lo reinvia.</p>';
     echo '</div>';
 
+    // Cierre de Flow 2 — mail con los links de pago. Solo tiene sentido
+    // una vez aprobada (y después de las llamadas/mails manuales donde se
+    // definió qué plan quiere) — por eso el bloque no aparece antes.
+    if ($decision === 'approved') {
+        $plan_options = [
+            ''                => '— Elegir —',
+            'none'            => 'Solo sito (senza abbonamento)',
+            'base_monthly'    => 'Base — Mensile',
+            'base_yearly'     => 'Base — Annuale',
+            'plus_monthly'    => 'Plus — Mensile',
+            'plus_yearly'     => 'Plus — Annuale',
+            'pro_monthly'     => 'Pro — Mensile',
+            'pro_yearly'      => 'Pro — Annuale',
+        ];
+        $current_plan = $get('ru_delivery_plan');
+
+        wp_nonce_field('ru_delivery_send', 'ru_delivery_send_nonce');
+        echo '<div style="margin-top:20px; padding-top:15px; border-top:1px solid #ccd0d4;">';
+        echo '<p><strong>Link di pagamento (Flow 2)</strong></p>';
+        echo '<p>Piano scelto: <select name="ru_delivery_plan">';
+        foreach ($plan_options as $value => $label) {
+            echo '<option value="' . esc_attr($value) . '" ' . selected($current_plan, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></p>';
+        echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
+        $last_sent = $get('ru_delivery_payment_links_sent_at');
+        if ($last_sent) {
+            echo '<p style="color:#666; font-size:12px;">Ultimo invio: ' . esc_html($last_sent) . '</p>';
+        }
+        echo '</div>';
+    }
+
     echo '</div>';
 });
+
+// Mapea el plan elegido a la constante RU_CHECKOUT_*_URL correspondiente
+// (definidas en ru-plugin.php). 'none' o vacío = sin link recurrente, solo
+// el del sitio.
+function ru_delivery_plan_checkout_url(string $plan): string {
+    $map = [
+        'base_monthly' => defined('RU_CHECKOUT_BASE_MONTHLY_URL') ? RU_CHECKOUT_BASE_MONTHLY_URL : '',
+        'base_yearly'  => defined('RU_CHECKOUT_BASE_YEARLY_URL') ? RU_CHECKOUT_BASE_YEARLY_URL : '',
+        'plus_monthly' => defined('RU_CHECKOUT_PLUS_MONTHLY_URL') ? RU_CHECKOUT_PLUS_MONTHLY_URL : '',
+        'plus_yearly'  => defined('RU_CHECKOUT_PLUS_YEARLY_URL') ? RU_CHECKOUT_PLUS_YEARLY_URL : '',
+        'pro_monthly'  => defined('RU_CHECKOUT_PRO_MONTHLY_URL') ? RU_CHECKOUT_PRO_MONTHLY_URL : '',
+        'pro_yearly'   => defined('RU_CHECKOUT_PRO_YEARLY_URL') ? RU_CHECKOUT_PRO_YEARLY_URL : '',
+    ];
+    return $map[$plan] ?? '';
+}
+
+// Igual que ru_application_decision_nonce arriba — checkbox se resetea
+// solo (nunca se re-marca automáticamente), así "Aggiorna" de nuevo sin
+// tocarlo no reenvía el mail.
+add_action('save_post_ru_application', function ($post_id) {
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+    if (!isset($_POST['ru_delivery_send_nonce']) || !wp_verify_nonce($_POST['ru_delivery_send_nonce'], 'ru_delivery_send')) return;
+    if (!current_user_can('edit_post', $post_id)) return;
+
+    $plan = sanitize_key($_POST['ru_delivery_plan'] ?? '');
+    update_post_meta($post_id, 'ru_delivery_plan', $plan);
+
+    if (empty($_POST['ru_delivery_send_payment_links'])) return; // checkbox no tildado, no manda nada
+
+    $email = get_post_meta($post_id, 'email', true);
+    if (!$email) return;
+
+    riseup_send_email([
+        'to'       => $email,
+        'subject'  => 'I link per procedere con RiseUp',
+        'template' => 'payment-links',
+        'data'     => [
+            'site_url'      => defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '',
+            'plan_url'      => ru_delivery_plan_checkout_url($plan),
+            'contract_url'  => defined('RU_CONTRACT_URL') ? RU_CONTRACT_URL : '',
+        ],
+    ]);
+
+    update_post_meta($post_id, 'ru_delivery_payment_links_sent_at', current_time('mysql'));
+}, 20); // prioridad 20: corre después del hook de la decisión (default 10)
 
 // Guarda la decisión y dispara el mail correspondiente — solo si el
 // valor cambió respecto al guardado anterior (evita reenviar el mail si
@@ -445,6 +523,13 @@ add_action('save_post_ru_application', function ($post_id) {
 // B, ver RU-SUBSCRIPTION-SYSTEM-PLAN.md sección 7.6.1) una vez creado.
 if (!defined('RU_ONBOARDING_FORM_URL')) {
     define('RU_ONBOARDING_FORM_URL', '');
+}
+
+// TODO: reemplazar por la URL real del contrato dinámico (sección 7.10)
+// una vez armado — mientras esté vacío, el mail de payment-links no
+// muestra el link.
+if (!defined('RU_CONTRACT_URL')) {
+    define('RU_CONTRACT_URL', '');
 }
 
 add_action('ru_application_decision_approved', function ($post_id) {

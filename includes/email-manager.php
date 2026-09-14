@@ -122,6 +122,7 @@ function riseup_send_email($args = []) {
         'subscription-cancelled', 'subscription_cancelled' => 'email-templates/subscription-cancelled-template.php',
         'application-approved', 'application_approved' => 'email-templates/application-approved-template.php',
         'application-rejected', 'application_rejected' => 'email-templates/application-rejected-template.php',
+        'payment-links', 'payment_links'       => 'email-templates/payment-links-template.php',
         default                               => ''
     };
 

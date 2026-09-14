@@ -552,13 +552,25 @@ Implementado en `includes/application-core.php` +
 `[link al modulo da completare]` en vez de romper), pero no se puede
 mandar el mail de verdad a un cliente real hasta cargar esa URL.
 
-**Contrato dinámico** (consulta del mismo día, sin resolver todavía):
-dónde mandarlo quedó recomendado — en el mail de los 2 links de pago
-(cierre de Flow 2), como link de lectura antes de pagar, no como paso
-separado. La aceptación legal en sí ya la cubre el art. 1.2 del contrato
-(el pago mismo perfecciona el contrato) — el dinámico sería solo
-documentación de apoyo/transparencia, no el mecanismo de aceptación. No
-se construyó todavía.
+**Contrato dinámico** (consulta del mismo día): dónde mandarlo quedó
+recomendado — en el mail de los 2 links de pago (cierre de Flow 2), como
+link de lectura antes de pagar, no como paso separado. La aceptación
+legal en sí ya la cubre el art. 1.2 del contrato (el pago mismo
+perfecciona el contrato) — el dinámico sería solo documentación de
+apoyo/transparencia, no el mecanismo de aceptación. **El mail ya está
+armado con el lugar reservado** (`contract_url`, vacío hasta que el
+contrato dinámico en sí se construya — no es parte de este build).
+
+**Cierre de Flow 2, implementado**: mismo bloque de `ru_application` en
+wp-admin, visible solo cuando la decisión es "Approvata" — dropdown de
+plan (los 6 + "solo sitio sin abono") + checkbox "Invia email" (mismo
+patrón de auto-reset que la decisión, no reenvía si guardás sin
+tildarlo de nuevo). Manda `RU_CHECKOUT_SITE_BASE_URL` siempre + el link
+recurrente que corresponda al plan elegido (o ninguno, si es "solo
+sitio") + el link al contrato si `RU_CONTRACT_URL` ya está cargada.
+Las llamadas/mails para decidir qué plan quiere el cliente siguen siendo
+100% manuales — este mecanismo solo automatiza el envío final de los
+links, no la conversación previa.
 
 ## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
 
