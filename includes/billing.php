@@ -244,13 +244,21 @@ function ru_stripe_extract_billing_data(array $event): array {
     }
 
     // El plan/interval vienen de la metadata del Price en Stripe (ver
-    // checklist de los 6 forms: ru_plan / ru_interval). En un invoice
-    // viaja adentro de cada línea — se pidió expandido en
-    // ru_stripe_fetch_invoice(). Si no está seteada, queda vacío y el
-    // handler de activate no activa nada al voleo.
-    $metadata = $obj['metadata']
-        ?? $obj['lines']['data'][0]['price']['metadata']
-        ?? [];
+    // checklist de los 6 forms: ru_plan / ru_interval). La API actual de
+    // Stripe NO expande el price adentro de lines.data[] — solo trae su
+    // ID en lines.data[].pricing.price_details.price (confirmado con un
+    // evento real: "pricing":{"price_details":{"price":"price_..."}}).
+    // Hay que pedir el Price aparte para leer su metadata.
+    $metadata = $obj['metadata'] ?? [];
+    if (empty($metadata)) {
+        $price_id = $obj['lines']['data'][0]['pricing']['price_details']['price']
+            ?? $obj['lines']['data'][0]['price']['id']
+            ?? null;
+        if (is_string($price_id)) {
+            $price = ru_stripe_fetch_price($price_id);
+            $metadata = $price['metadata'] ?? [];
+        }
+    }
 
     // customer.subscription.deleted trae el motivo real en
     // cancellation_details.reason ('cancellation_requested' = el cliente
@@ -275,13 +283,28 @@ function ru_stripe_fetch_invoice(string $invoice_id): ?array {
     $secret_key = ru_stripe_secret_key();
     if (!$secret_key) return null;
 
-    $res = wp_remote_get(
-        "https://api.stripe.com/v1/invoices/{$invoice_id}?" . http_build_query(['expand[]' => 'lines.data.price']),
-        [
-            'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
-            'timeout' => 10,
-        ]
-    );
+    // Sin expand: la API actual no expande el price adentro de lines.data[]
+    // de ningún modo útil (confirmado con un evento real) — el metadata se
+    // pide aparte con ru_stripe_fetch_price().
+    $res = wp_remote_get("https://api.stripe.com/v1/invoices/{$invoice_id}", [
+        'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
+        'timeout' => 10,
+    ]);
+
+    if (is_wp_error($res)) return null;
+
+    $body = json_decode(wp_remote_retrieve_body($res), true);
+    return is_array($body) ? $body : null;
+}
+
+function ru_stripe_fetch_price(string $price_id): ?array {
+    $secret_key = ru_stripe_secret_key();
+    if (!$secret_key) return null;
+
+    $res = wp_remote_get("https://api.stripe.com/v1/prices/{$price_id}", [
+        'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
+        'timeout' => 10,
+    ]);
 
     if (is_wp_error($res)) return null;
 
