@@ -151,6 +151,7 @@ function ru_stripe_webhook_endpoint(WP_REST_Request $r) {
 
     switch ($type) {
         case 'invoice.payment_succeeded':
+        case 'invoice_payment.paid': // API version nueva — mismo hecho, objeto distinto
             ru_billing_handle_subscription_activate(ru_stripe_extract_billing_data($event));
             break;
         case 'customer.subscription.deleted':
@@ -192,11 +193,24 @@ function ru_stripe_verify_signature(string $payload, ?string $sig_header, string
     return false;
 }
 
-// Saca email + plan/interval del evento de Stripe. El email no siempre
-// viaja en el mismo lugar según el tipo de evento — se intenta lo directo
-// primero, y si hace falta se pide el Customer a la API de Stripe.
+// Saca email + plan/interval del evento de Stripe. El objeto que viaja en
+// el evento varía según el tipo:
+// - invoice.payment_succeeded: el objeto ES el invoice completo (email y
+//   metadata directo).
+// - invoice_payment.paid (API version nueva): el objeto es un
+//   "invoice_payment", NO trae ni email ni metadata — solo una referencia
+//   ('invoice' => id). Hace falta pedirle el invoice completo a la API.
+// - customer.subscription.deleted: el objeto es la subscription (sin
+//   email directo tampoco, pero sí trae 'customer' para resolverlo).
 function ru_stripe_extract_billing_data(array $event): array {
-    $obj = $event['data']['object'] ?? [];
+    $type = $event['type'] ?? '';
+    $obj  = $event['data']['object'] ?? [];
+
+    if ($type === 'invoice_payment.paid') {
+        $invoice_id = is_string($obj['invoice'] ?? null) ? $obj['invoice'] : '';
+        $invoice    = $invoice_id ? ru_stripe_fetch_invoice($invoice_id) : null;
+        $obj        = $invoice ?? []; // a partir de acá, mismo shape que invoice.payment_succeeded
+    }
 
     $email       = $obj['customer_email'] ?? $obj['customer_details']['email'] ?? '';
     $customer_id = is_string($obj['customer'] ?? null) ? $obj['customer'] : '';
@@ -206,9 +220,13 @@ function ru_stripe_extract_billing_data(array $event): array {
     }
 
     // El plan/interval vienen de la metadata del Price en Stripe (ver
-    // checklist de los 6 forms: ru_plan / ru_interval). Si no está seteada,
-    // queda vacío y el handler de activate no activa nada al voleo.
-    $metadata = $obj['metadata'] ?? [];
+    // checklist de los 6 forms: ru_plan / ru_interval). En un invoice
+    // viaja adentro de cada línea — se pidió expandido en
+    // ru_stripe_fetch_invoice(). Si no está seteada, queda vacío y el
+    // handler de activate no activa nada al voleo.
+    $metadata = $obj['metadata']
+        ?? $obj['lines']['data'][0]['price']['metadata']
+        ?? [];
 
     // customer.subscription.deleted trae el motivo real en
     // cancellation_details.reason ('cancellation_requested' = el cliente
@@ -220,16 +238,37 @@ function ru_stripe_extract_billing_data(array $event): array {
         'email'    => $email,
         'plan'     => $metadata['ru_plan'] ?? '',
         'interval' => $metadata['ru_interval'] ?? '',
-        'reason'   => $cancellation_reason ?? ($event['type'] ?? 'unknown'),
+        'reason'   => $cancellation_reason ?? ($type ?: 'unknown'),
         'source'   => 'stripe',
     ];
 }
 
-function ru_stripe_fetch_customer_email(string $customer_id): string {
-    $secret_key = function_exists('simpay_get_secret_key')
-        ? simpay_get_secret_key() // reusa la key ya cargada por WP Simple Pay
-        : (defined('STRIPE_SECRET_KEY') ? STRIPE_SECRET_KEY : '');
+function ru_stripe_fetch_invoice(string $invoice_id): ?array {
+    $secret_key = ru_stripe_secret_key();
+    if (!$secret_key) return null;
 
+    $res = wp_remote_get(
+        "https://api.stripe.com/v1/invoices/{$invoice_id}?" . http_build_query(['expand[]' => 'lines.data.price']),
+        [
+            'headers' => ['Authorization' => 'Basic ' . base64_encode($secret_key . ':')],
+            'timeout' => 10,
+        ]
+    );
+
+    if (is_wp_error($res)) return null;
+
+    $body = json_decode(wp_remote_retrieve_body($res), true);
+    return is_array($body) ? $body : null;
+}
+
+function ru_stripe_secret_key(): string {
+    return function_exists('simpay_get_secret_key')
+        ? simpay_get_secret_key() // reusa la key ya cargada por WP Simple Pay, si está
+        : (defined('STRIPE_SECRET_KEY') ? STRIPE_SECRET_KEY : '');
+}
+
+function ru_stripe_fetch_customer_email(string $customer_id): string {
+    $secret_key = ru_stripe_secret_key();
     if (!$secret_key) return '';
 
     $res = wp_remote_get("https://api.stripe.com/v1/customers/{$customer_id}", [
