@@ -62,6 +62,17 @@ function ru_billing_handle_subscription_activate(array $data): void {
     // antes de sospechar del código.
     if (!$email || !$plan) return;
 
+    // Segunda capa de dedup, específica para el caso de dos TIPOS de
+    // evento sobre el mismo invoice (invoice.payment_succeeded +
+    // invoice_payment.paid) — el dedup por event_id del endpoint no lo
+    // cubre porque son event_id distintos para el mismo hecho.
+    $invoice_id = $data['invoice_id'] ?? '';
+    if ($invoice_id) {
+        $dedup_key = 'ru_stripe_invoice_' . md5($invoice_id);
+        if (get_transient($dedup_key)) return;
+        set_transient($dedup_key, 1, DAY_IN_SECONDS);
+    }
+
     $user_id = ru_client_user_id($email, true);
     if (!$user_id) return;
 
@@ -149,6 +160,19 @@ function ru_stripe_webhook_endpoint(WP_REST_Request $r) {
     $event = json_decode($payload, true);
     $type  = $event['type'] ?? '';
 
+    // Traba contra reenvíos de Stripe (redelivery legítimo del mismo
+    // evento) — no resuelve el caso de dos TIPOS de evento distintos para
+    // el mismo hecho (invoice.payment_succeeded + invoice_payment.paid),
+    // eso se evita eligiendo un solo evento al crear el destination.
+    $event_id = $event['id'] ?? '';
+    if ($event_id) {
+        $dedup_key = 'ru_stripe_evt_' . md5($event_id);
+        if (get_transient($dedup_key)) {
+            return new WP_REST_Response(['ok' => true, 'dedup' => true], 200);
+        }
+        set_transient($dedup_key, 1, DAY_IN_SECONDS);
+    }
+
     switch ($type) {
         case 'invoice.payment_succeeded':
         case 'invoice_payment.paid': // API version nueva — mismo hecho, objeto distinto
@@ -235,11 +259,15 @@ function ru_stripe_extract_billing_data(array $event): array {
     $cancellation_reason = $obj['cancellation_details']['reason'] ?? null;
 
     return [
-        'email'    => $email,
-        'plan'     => $metadata['ru_plan'] ?? '',
-        'interval' => $metadata['ru_interval'] ?? '',
-        'reason'   => $cancellation_reason ?? ($type ?: 'unknown'),
-        'source'   => 'stripe',
+        'email'      => $email,
+        'plan'       => $metadata['ru_plan'] ?? '',
+        'interval'   => $metadata['ru_interval'] ?? '',
+        'reason'     => $cancellation_reason ?? ($type ?: 'unknown'),
+        'source'     => 'stripe',
+        // Solo tiene sentido para invoice.payment_succeeded/invoice_payment.paid
+        // (ahí $obj es o pasa a ser el invoice) — se usa para el dedup en
+        // ru_billing_handle_subscription_activate().
+        'invoice_id' => (string) ($obj['id'] ?? ''),
     ];
 }
 
