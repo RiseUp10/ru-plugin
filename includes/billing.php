@@ -254,12 +254,16 @@ function ru_stripe_extract_billing_data(array $event): array {
     // evento real: "pricing":{"price_details":{"price":"price_..."}}).
     // Hay que pedir el Price aparte para leer su metadata.
     $metadata = $obj['metadata'] ?? [];
+    $debug_price_id = null;
+    $debug_price_fetched = null;
     if (empty($metadata)) {
         $price_id = $obj['lines']['data'][0]['pricing']['price_details']['price']
             ?? $obj['lines']['data'][0]['price']['id']
             ?? null;
+        $debug_price_id = $price_id;
         if (is_string($price_id)) {
             $price = ru_stripe_fetch_price($price_id);
+            $debug_price_fetched = $price !== null; // null = la llamada a la API falló
             $metadata = $price['metadata'] ?? [];
         }
     }
@@ -280,6 +284,10 @@ function ru_stripe_extract_billing_data(array $event): array {
         // (ahí $obj es o pasa a ser el invoice) — se usa para el dedup en
         // ru_billing_handle_subscription_activate().
         'invoice_id' => (string) ($obj['id'] ?? ''),
+        // TODO debug, sacar junto con el resto del bloque de debug (7.9)
+        'debug_price_id'      => $debug_price_id,
+        'debug_price_fetched' => $debug_price_fetched,
+        'debug_secret_set'    => (bool) ru_stripe_secret_key(),
     ];
 }
 
