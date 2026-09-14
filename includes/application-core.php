@@ -394,5 +394,78 @@ add_action('edit_form_after_title', function ($post) {
         echo '<tr><td style="width:180px;"><strong>' . esc_html($label) . '</strong></td><td>' . nl2br(esc_html($value ?: '—')) . '</td></tr>';
     }
     echo '</tbody></table>';
+
+    // Decisión de aprobación — 3 estados explícitos, nunca 2, para que
+    // "todavía no la miré" no se confunda con "la rechacé" (ver plan,
+    // decisión 14 sep 2026). Vive adentro del <form> nativo del editor,
+    // se guarda junto con el post normal (botón "Aggiorna"), sin AJAX.
+    $decision = $get('ru_application_decision') ?: 'pending';
+    wp_nonce_field('ru_application_decision', 'ru_application_decision_nonce');
+    echo '<div style="margin-top:15px;">';
+    echo '<p><strong>Decisione</strong></p>';
+    foreach (['pending' => 'In attesa', 'approved' => 'Approvata', 'rejected' => 'Rifiutata'] as $value => $label) {
+        $checked = checked($decision, $value, false);
+        echo '<label style="margin-right:20px;"><input type="radio" name="ru_application_decision" value="' . esc_attr($value) . '" ' . $checked . '> ' . esc_html($label) . '</label>';
+    }
+    echo '<p style="color:#666; font-size:12px;">Al salvare con "Approvata" o "Rifiutata" parte l\'email corrispondente — solo la prima volta che cambi lo stato, salvare di nuovo senza cambiarlo non lo reinvia.</p>';
     echo '</div>';
+
+    echo '</div>';
+});
+
+// Guarda la decisión y dispara el mail correspondiente — solo si el
+// valor cambió respecto al guardado anterior (evita reenviar el mail si
+// se guarda el post de nuevo sin tocar el radio).
+add_action('save_post_ru_application', function ($post_id) {
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+    if (!isset($_POST['ru_application_decision_nonce']) || !wp_verify_nonce($_POST['ru_application_decision_nonce'], 'ru_application_decision')) return;
+    if (!current_user_can('edit_post', $post_id)) return;
+
+    $new_decision = sanitize_key($_POST['ru_application_decision'] ?? 'pending');
+    if (!in_array($new_decision, ['pending', 'approved', 'rejected'], true)) return;
+
+    $previous_decision = get_post_meta($post_id, 'ru_application_decision', true) ?: 'pending';
+    if ($new_decision === $previous_decision) return; // sin cambio, no dispara nada
+
+    update_post_meta($post_id, 'ru_application_decision', $new_decision);
+
+    if ($new_decision === 'approved') {
+        do_action('ru_application_decision_approved', $post_id);
+    } elseif ($new_decision === 'rejected') {
+        do_action('ru_application_decision_rejected', $post_id);
+    }
+});
+
+// ---------------------------------------------------------------------
+// Mail bisagra Flow 1 → Flow 2 (aprobación) y mail de rechazo
+// ---------------------------------------------------------------------
+
+// TODO: reemplazar por la URL real del Google Form de onboarding (Etapa
+// B, ver RU-SUBSCRIPTION-SYSTEM-PLAN.md sección 7.6.1) una vez creado.
+if (!defined('RU_ONBOARDING_FORM_URL')) {
+    define('RU_ONBOARDING_FORM_URL', '');
+}
+
+add_action('ru_application_decision_approved', function ($post_id) {
+    $email = get_post_meta($post_id, 'email', true);
+    if (!$email) return;
+
+    riseup_send_email([
+        'to'       => $email,
+        'subject'  => 'La tua candidatura è stata approvata! 🎉',
+        'template' => 'application-approved',
+        'data'     => ['onboarding_form_url' => RU_ONBOARDING_FORM_URL],
+    ]);
+});
+
+add_action('ru_application_decision_rejected', function ($post_id) {
+    $email = get_post_meta($post_id, 'email', true);
+    if (!$email) return;
+
+    riseup_send_email([
+        'to'       => $email,
+        'subject'  => 'La tua candidatura a RiseUp',
+        'template' => 'application-rejected',
+    ]);
 });

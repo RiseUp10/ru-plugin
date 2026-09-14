@@ -158,8 +158,9 @@ Ya está en producción y probado. Mapa completo:
   - Solo hace falta una forma de ver las aplicaciones enviadas en
     wp-admin (alcanza con la lista nativa del CPT, no requiere UI custom
     para v1).
-  - Rechazo: mail personal escrito a mano por el usuario, **fuera del
-    sistema** (no hay que automatizar un template de rechazo todavía).
+  - ~~Rechazo: mail personal escrito a mano por el usuario, fuera del
+    sistema.~~ **Actualizado 14 sep 2026: automatizado también** — ver
+    sección 7.10.
   - Aprobación: si dispara automáticamente el siguiente paso (mail con
     Google Doc + link de pago) o si también es manual, queda para cuando
     se implemente — no bloquea el desarrollo de la Etapa A en sí.
@@ -520,6 +521,44 @@ con la API de Stripe):
 entrega del mail (probablemente cola de Brevo o config de WP Mail SMTP,
 no del código del webhook en sí — el webhook respondió 200 casi
 instantáneo).
+
+## 7.10 Decisión (14 sep 2026) — Mail bisagra Flow 1→2 y rechazo, ambos automatizados
+
+El mail que cierra Flow 1 (Applying) y abre Flow 2 (Approval) es **uno
+solo, en el caso positivo** — le dice al candidato que fue aprobado y en
+el mismo envío le da la info de templates/forma de trabajo + el link al
+Google Form de onboarding. El caso negativo pasó de ser manual (decisión
+del 18 ago) a **también automatizado**, con su propio template.
+
+**Mecanismo**: `ru_application` gana un tercer estado explícito,
+`ru_application_decision` (`pending`/`approved`/`rejected`, default
+`pending`) — deliberadamente 3 valores, no un checkbox de 2, para que
+"todavía no la revisé" nunca se confunda con "la rechacé" y dispare un
+mail por accidente. Se elige con radio buttons adentro del mismo
+`<form>` del editor de wp-admin (junto al resumen ya existente en
+`edit_form_after_title`), se guarda con el botón nativo "Aggiorna" — sin
+AJAX ni pantalla nueva. `save_post_ru_application` dispara
+`ru_application_decision_approved` o `_rejected` **solo cuando el valor
+cambia** respecto al guardado anterior — volver a guardar sin tocar el
+radio no reenvía nada.
+
+Implementado en `includes/application-core.php` +
+`email-templates/application-approved-template.php` +
+`application-rejected-template.php`.
+
+**Pendiente real**: `RU_ONBOARDING_FORM_URL` queda vacía (constante en
+`application-core.php`) hasta que exista el Google Form de la Etapa B
+(sección 7.6.1) — el template ya contempla el caso vacío (muestra
+`[link al modulo da completare]` en vez de romper), pero no se puede
+mandar el mail de verdad a un cliente real hasta cargar esa URL.
+
+**Contrato dinámico** (consulta del mismo día, sin resolver todavía):
+dónde mandarlo quedó recomendado — en el mail de los 2 links de pago
+(cierre de Flow 2), como link de lectura antes de pagar, no como paso
+separado. La aceptación legal en sí ya la cubre el art. 1.2 del contrato
+(el pago mismo perfecciona el contrato) — el dinámico sería solo
+documentación de apoyo/transparencia, no el mecanismo de aceptación. No
+se construyó todavía.
 
 ## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
 

@@ -120,6 +120,8 @@ function riseup_send_email($args = []) {
         'confirm-audit', 'confirm_audit'      => 'email-templates/confirm-audit-template.php',
         'subscription-activated', 'subscription_activated' => 'email-templates/subscription-activated-template.php',
         'subscription-cancelled', 'subscription_cancelled' => 'email-templates/subscription-cancelled-template.php',
+        'application-approved', 'application_approved' => 'email-templates/application-approved-template.php',
+        'application-rejected', 'application_rejected' => 'email-templates/application-rejected-template.php',
         default                               => ''
     };
 
