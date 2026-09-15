@@ -11,6 +11,20 @@
         </a>
     </p>
 
+    <p><strong>Come installarlo:</strong></p>
+
+    <p>Il file che ricevi è un backup completo del tuo sito WordPress
+    (formato <code>.wpress</code>). Per usarlo ti serve:</p>
+
+    <ol>
+        <li>Un hosting con WordPress già installato (il tuo, o uno nuovo).</li>
+        <li>Il plugin gratuito <strong>All-in-One WP Migration</strong>, lo installi da Plugin → Aggiungi nuovo, cercando quel nome.</li>
+        <li>Una volta attivato, vai su <strong>Tutto-in-uno WP Migration → Importa</strong>, seleziona il file che hai scaricato, e aspetta che finisca.</li>
+    </ol>
+
+    <p>Se questo ti sembra troppo tecnico, puoi passare questo file a chi
+    si occupa del tuo hosting o del tuo sito: sa esattamente cosa farci.</p>
+
     <p style="font-size:13px; color:#bbb;">Il link potrebbe scadere dopo
     qualche giorno, se non riesci più a scaricarlo scrivici e te lo
     rimandiamo.</p>
