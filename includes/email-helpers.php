@@ -33,11 +33,10 @@ function rum_headers($type = 'plain', array $extra = []) {
 
     // From / Reply-To filtrables — remitente con nombre propio, no "no-reply"
     // (principio del workspace: mínimo contacto pero sin sonar frío/corporativo).
-    // Reply-To apunta al mismo mail, no a un contatto@ genérico — quien
-    // responda el mail le llega directo a Roberto, no a una casilla anónima.
+    // Reply-To apunta al mismo mail, no a un contatto@ genérico.
     $from_name  = apply_filters('rum_email_from_name',  'Roberto da RiseUp');
-    $from_email = apply_filters('rum_email_from_email', 'roberto@riseup.marketing');
-    $reply_to   = apply_filters('rum_email_reply_to',   'roberto@riseup.marketing');
+    $from_email = apply_filters('rum_email_from_email', 'servizioclienti@riseup.marketing');
+    $reply_to   = apply_filters('rum_email_reply_to',   'servizioclienti@riseup.marketing');
 
     $headers[] = 'From: ' . $from_name . ' <' . $from_email . '>';
     if ($reply_to) $headers[] = 'Reply-To: ' . $reply_to;

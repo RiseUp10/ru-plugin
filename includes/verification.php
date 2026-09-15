@@ -60,7 +60,7 @@ function ru_dispatch_verification_email($post_id) {
             'confirm_url'   => $confirm_url,
             'context_label' => $context_label,
             'body_text'     => ($type === 'application')
-                ? 'Grazie per il tuo interesse! Per continuare la tua candidatura, conferma il tuo indirizzo email.'
+                ? 'Se vuoi ottenere un sito web a 1€, dobbiamo sapere se esisti davvero. Perciò, conferma la tua email.'
                 : null,
             'button_text'   => ($type === 'application') ? 'Conferma e continua' : null,
         ],
@@ -198,7 +198,7 @@ add_shortcode('ru_audit_status', function () {
     if ($status === 'ok' && $schema) {
         $text = ($schema === 'not_found')
             ? '❌ Schema non trovato.'
-            : '✅ Schema Markup trovato — più dettagli nella email che stai per ricevere.';
+            : '✅ Schema Markup trovato, più dettagli nella email che stai per ricevere.';
         return '<p class="ru-audit-status">' . esc_html($text) . '</p>';
     }
 

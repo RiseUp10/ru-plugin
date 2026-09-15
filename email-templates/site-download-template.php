@@ -12,9 +12,9 @@
     </p>
 
     <p style="font-size:13px; color:#bbb;">Il link potrebbe scadere dopo
-    qualche giorno — se non riesci più a scaricarlo, scrivici e te lo
+    qualche giorno, se non riesci più a scaricarlo scrivici e te lo
     rimandiamo.</p>
 
-    <p style="font-size:12px; color:#999;">RiseUp Consulting — riseup.marketing</p>
+    <p style="font-size:12px; color:#999;">RiseUp Marketing, riseup.marketing</p>
 </body>
 </html>

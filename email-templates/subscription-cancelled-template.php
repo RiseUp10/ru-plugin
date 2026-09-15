@@ -22,7 +22,7 @@
         </p>
     <?php else: ?>
         <p>Stiamo preparando il pacchetto per scaricare una copia completa
-        del tuo sito — se non lo ricevi entro qualche giorno, scrivici a
+        del tuo sito, se non lo ricevi entro qualche giorno scrivici a
         <a href="mailto:servizioclienti@riseup.marketing" style="color:#EEEBEB;">servizioclienti@riseup.marketing</a>
         e te lo mandiamo subito.</p>
     <?php endif; ?>
@@ -34,9 +34,9 @@
         </p>
     <?php endif; ?>
 
-    <p>Per qualsiasi dubbio, rispondi pure a questa email — ti risponde una
+    <p>Per qualsiasi dubbio, rispondi pure a questa email, ti risponde una
     persona vera, non un sistema automatico.</p>
 
-    <p style="font-size:12px; color:#999;">RiseUp Consulting — riseup.marketing</p>
+    <p style="font-size:12px; color:#999;">RiseUp Marketing, riseup.marketing</p>
 </body>
 </html>

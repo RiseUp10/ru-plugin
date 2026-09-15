@@ -17,13 +17,13 @@
     </p>
 
     <p>Se invece vorresti cambiare qualcosa, rispondi pure a questa
-    email raccontandoci cosa — niente moduli da compilare, ci scriviamo
+    email raccontandoci cosa, niente moduli da compilare, ci scriviamo
     direttamente.</p>
 
     <p style="font-size:13px; color:#bbb;">Il tuo pacchetto include <?= (int) ($revision_limit ?? 1) ?> round di revisione
     gratuit<?= (int) ($revision_limit ?? 1) === 1 ? 'o' : 'i' ?>. Oltre questo, eventuali modifiche aggiuntive hanno un
-    costo a parte — te ne parliamo caso per caso.</p>
+    costo a parte, te ne parliamo caso per caso.</p>
 
-    <p style="font-size:12px; color:#999;">RiseUp Consulting — riseup.marketing</p>
+    <p style="font-size:12px; color:#999;">RiseUp Marketing, riseup.marketing</p>
 </body>
 </html>

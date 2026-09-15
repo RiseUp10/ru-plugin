@@ -526,10 +526,8 @@ add_action('save_post_ru_application', function ($post_id) {
 // Mail bisagra Flow 1 → Flow 2 (aprobación) y mail de rechazo
 // ---------------------------------------------------------------------
 
-// TODO: reemplazar por la URL real del Google Form de onboarding (Etapa
-// B, ver RU-SUBSCRIPTION-SYSTEM-PLAN.md sección 7.6.1) una vez creado.
 if (!defined('RU_ONBOARDING_FORM_URL')) {
-    define('RU_ONBOARDING_FORM_URL', '');
+    define('RU_ONBOARDING_FORM_URL', 'https://docs.google.com/forms/d/e/1FAIpQLSc-c-v7PeWG-YhaQIo79NsJdpMWV0Obu5kkN1DcZJ5TRZXNXg/viewform?usp=dialog');
 }
 
 // TODO: reemplazar por la URL real de la página de Condizioni Generali

@@ -6,9 +6,9 @@
     (<?= esc_html($interval === 'yearly' ? 'annuale' : 'mensile') ?>) è attivo.</p>
 
     <p>Se qualcosa non torna o hai bisogno di aiuto, rispondi pure a
-    questa email — ti risponde una persona vera, non un sistema
+    questa email, ti risponde una persona vera, non un sistema
     automatico.</p>
 
-    <p style="font-size:12px; color:#999;">RiseUp Consulting — riseup.marketing</p>
+    <p style="font-size:12px; color:#999;">RiseUp Marketing, riseup.marketing</p>
 </body>
 </html>

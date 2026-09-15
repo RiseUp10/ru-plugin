@@ -13,7 +13,7 @@
         <p><strong>Il tuo abbonamento:</strong><br>
         <a href="<?= esc_url($plan_url) ?>" style="color:#EEEBEB;"><?= esc_html($plan_url) ?></a></p>
     <?php else: ?>
-        <p>Hai scelto di procedere senza abbonamento — nessun link
+        <p>Hai scelto di procedere senza abbonamento, nessun link
         ricorrente da completare.</p>
     <?php endif; ?>
 
@@ -27,9 +27,9 @@
         <a href="<?= esc_url($terms_url) ?>" style="color:#bbb;">Condizioni Generali</a> complete, che restano valide per tutto il resto.</p>
     <?php endif; ?>
 
-    <p>Hai un dubbio nel frattempo? Rispondi pure a questa email — ti
+    <p>Hai un dubbio nel frattempo? Rispondi pure a questa email, ti
     risponde una persona vera, non un sistema automatico.</p>
 
-    <p style="font-size:12px; color:#999;">RiseUp Consulting — riseup.marketing</p>
+    <p style="font-size:12px; color:#999;">RiseUp Marketing, riseup.marketing</p>
 </body>
 </html>

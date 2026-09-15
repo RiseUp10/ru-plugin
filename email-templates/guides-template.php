@@ -30,7 +30,7 @@ body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
 </div>
 
 <p>Buona lettura!<br>
-— Il team di Rise Up</p>
+Il team di Rise Up</p>
 
 </body>
 </html>
