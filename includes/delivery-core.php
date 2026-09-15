@@ -30,7 +30,7 @@ add_action('edit_form_after_title', function ($post) {
     echo '<h2 style="margin-top:0;">Consegna del sito (Flow 3)</h2>';
 
     if ($status === 'approved') {
-        echo '<p>✅ Approvato il ' . esc_html($get('ru_delivery_approved_at')) . ' — IP: ' . esc_html($get('ru_delivery_approved_ip')) . '</p>';
+        echo '<p>✅ Approvato il ' . esc_html($get('ru_delivery_approved_at')) . ' (IP: ' . esc_html($get('ru_delivery_approved_ip')) . ')</p>';
     }
 
     echo '<p><label>URL anteprima (dominio/staging temporaneo che usi tu)<br><input type="text" name="ru_delivery_preview_url" value="' . esc_attr($get('ru_delivery_preview_url')) . '" style="width:100%; max-width:500px;"></label></p>';
@@ -142,7 +142,7 @@ function ru_delivery_confirm() {
     }
 
     if (get_post_meta($post_id, 'ru_delivery_status', true) === 'approved') {
-        $message('Avevi già confermato — grazie di nuovo!');
+        $message('Avevi già confermato, grazie di nuovo!');
     }
 
     update_post_meta($post_id, 'ru_delivery_status', 'approved');
@@ -158,5 +158,5 @@ function ru_delivery_confirm() {
         ]);
     }
 
-    $message('Grazie! Il tuo sito è confermato — ti abbiamo mandato una email di conferma.');
+    $message('Grazie! Il tuo sito è confermato. Ti abbiamo mandato una email di conferma.');
 }

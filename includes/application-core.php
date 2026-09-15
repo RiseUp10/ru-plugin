@@ -385,13 +385,13 @@ add_action('edit_form_after_title', function ($post) {
     echo '<h2 style="margin-top:0;">Candidatura</h2>';
 
     echo '<p><strong>Stato:</strong> ' . esc_html($get('application_status') ?: 'pending_email') . '</p>';
-    echo '<p><strong>Email:</strong> ' . esc_html($get('email')) . ' — ' . ($email_verified ? '✅ verificata' : '❌ non verificata') . '</p>';
-    echo '<p><strong>Telefono:</strong> ' . esc_html($get('phone')) . ' — ' . ($phone_verified ? '✅ verificato' : '❌ non verificato') . '</p>';
+    echo '<p><strong>Email:</strong> ' . esc_html($get('email')) . ' (' . ($email_verified ? '✅ verificata' : '❌ non verificata') . ')</p>';
+    echo '<p><strong>Telefono:</strong> ' . esc_html($get('phone')) . ' (' . ($phone_verified ? '✅ verificato' : '❌ non verificato') . ')</p>';
 
     echo '<table class="widefat" style="margin-top:15px;"><tbody>';
     foreach ($labels as $key => $label) {
         $value = $get($key);
-        echo '<tr><td style="width:180px;"><strong>' . esc_html($label) . '</strong></td><td>' . nl2br(esc_html($value ?: '—')) . '</td></tr>';
+        echo '<tr><td style="width:180px;"><strong>' . esc_html($label) . '</strong></td><td>' . nl2br(esc_html($value ?: 'N/D')) . '</td></tr>';
     }
     echo '</tbody></table>';
 
@@ -407,7 +407,7 @@ add_action('edit_form_after_title', function ($post) {
         $checked = checked($decision, $value, false);
         echo '<label style="margin-right:20px;"><input type="radio" name="ru_application_decision" value="' . esc_attr($value) . '" ' . $checked . '> ' . esc_html($label) . '</label>';
     }
-    echo '<p style="color:#666; font-size:12px;">Al salvare con "Approvata" o "Rifiutata" parte l\'email corrispondente — solo la prima volta che cambi lo stato, salvare di nuovo senza cambiarlo non lo reinvia.</p>';
+    echo '<p style="color:#666; font-size:12px;">Al salvare con "Approvata" o "Rifiutata" parte l\'email corrispondente, solo la prima volta che cambi lo stato: salvare di nuovo senza cambiarlo non lo reinvia.</p>';
     echo '</div>';
 
     // Cierre de Flow 2 — mail con los links de pago. Solo tiene sentido
@@ -415,14 +415,14 @@ add_action('edit_form_after_title', function ($post) {
     // definió qué plan quiere) — por eso el bloque no aparece antes.
     if ($decision === 'approved') {
         $plan_options = [
-            ''                => '— Elegir —',
+            ''                => 'Scegli...',
             'none'            => 'Solo sito (senza abbonamento)',
-            'base_monthly'    => 'Base — Mensile',
-            'base_yearly'     => 'Base — Annuale',
-            'plus_monthly'    => 'Plus — Mensile',
-            'plus_yearly'     => 'Plus — Annuale',
-            'pro_monthly'     => 'Pro — Mensile',
-            'pro_yearly'      => 'Pro — Annuale',
+            'base_monthly'    => 'Base, Mensile',
+            'base_yearly'     => 'Base, Annuale',
+            'plus_monthly'    => 'Plus, Mensile',
+            'plus_yearly'     => 'Plus, Annuale',
+            'pro_monthly'     => 'Pro, Mensile',
+            'pro_yearly'      => 'Pro, Annuale',
         ];
         $current_plan = $get('ru_delivery_plan');
         $current_addons = $get('ru_delivery_addons') ?: [];
@@ -442,13 +442,13 @@ add_action('edit_form_after_title', function ($post) {
         }
         echo '</select></p>';
 
-        echo '<p><strong>Add-on</strong> (lascia vuoto o 0 = non incluso — un prezzo &gt; 0 lo include automaticamente):</p>';
+        echo '<p><strong>Add-on</strong> (lascia vuoto o 0 = non incluso, un prezzo &gt; 0 lo include automaticamente):</p>';
         echo '<table class="widefat" style="max-width:500px;"><tbody>';
         foreach (ru_delivery_addon_catalog() as $key => $label) {
             $price = $current_addons[$key] ?? '';
             echo '<tr><td>' . esc_html($label) . '</td><td><input type="number" step="0.01" min="0" name="ru_delivery_addon_price[' . esc_attr($key) . ']" value="' . esc_attr($price) . '" style="width:90px;"> €</td></tr>';
         }
-        echo '<tr><td>Personalizzazione design (ore)<br><span style="color:#666; font-size:12px;">' . esc_html($hourly_rate) . '€/h — ' . ($has_sub ? 'con abbonamento' : 'senza abbonamento') . '</span></td><td><input type="number" step="0.5" min="0" name="ru_delivery_custom_hours" value="' . esc_attr($current_hours) . '" style="width:90px;"> h</td></tr>';
+        echo '<tr><td>Personalizzazione design (ore)<br><span style="color:#666; font-size:12px;">' . esc_html($hourly_rate) . '€/h (' . ($has_sub ? 'con abbonamento' : 'senza abbonamento') . ')</span></td><td><input type="number" step="0.5" min="0" name="ru_delivery_custom_hours" value="' . esc_attr($current_hours) . '" style="width:90px;"> h</td></tr>';
         echo '</tbody></table>';
 
         $extra_cost = ru_delivery_extra_cost($post_id);
@@ -458,7 +458,7 @@ add_action('edit_form_after_title', function ($post) {
             echo '<p><label>URL pagamento combinato (1€ + extra, da creare a mano su Stripe)<br>';
             echo '<input type="text" name="ru_delivery_combined_payment_url" value="' . esc_attr($get('ru_delivery_combined_payment_url')) . '" style="width:100%; max-width:500px;"></label></p>';
         } else {
-            echo '<p style="color:#666; font-size:12px;">Senza costo extra si usa il link fisso da 1€ — non serve niente qui.</p>';
+            echo '<p style="color:#666; font-size:12px;">Senza costo extra si usa il link fisso da 1€, non serve niente qui.</p>';
         }
 
         echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
