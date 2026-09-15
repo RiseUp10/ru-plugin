@@ -27,7 +27,7 @@
 #ru-application-root .ru-app-step input, #ru-application-root .ru-app-step textarea { display:block; width:100%; margin:0 0 14px; padding:10px 12px; box-sizing:border-box; border-radius:12px; font-family:Maven Pro; font-weight:500; }
 #ru-application-root .ru-app-step input:focus, #ru-application-root .ru-app-step textarea:focus { outline:none; box-shadow:0 0 0 2px rgba(0,68,128,.25); }
 #ru-application-root .ru-app-error { color:#c0392b; font-size:0.85rem; min-height:1em; }
-.ru-app-link-button { background:none; border:none; padding:0; color:#555; text-decoration:underline; cursor:pointer; font-size:0.85rem; white-space:normal; }
+#ru-application-root .ru-app-link-button { background:none; border:none; padding:0; color:#555; text-decoration:underline; cursor:pointer; font-size:0.85rem; white-space:normal; }
 #ru-application-root .apply-button { display:inline-block; border-style:solid; border-color:#fff; border-width:1px 3px 3px 1px; border-radius:25px; padding:12px 28px; font-size:1rem; font-weight:600; color:#fff; background:#004480; cursor:pointer; }
 #ru-application-root .apply-button:hover { background:#0058a8; }
 
