@@ -89,6 +89,16 @@ function ru_billing_handle_subscription_activate(array $data): void {
         'template' => 'subscription-activated',
         'data'     => ['plan' => $plan, 'interval' => $interval],
     ]);
+
+    // Aviso a Make (control/reporte, no decisión — ver §7.12) para que la
+    // hoja de cálculo se actualice sola. WP ya resolvió todo el parseo de
+    // Stripe, Make solo recibe el dato limpio.
+    ru_make_notify('subscription_activated', [
+        'email'    => $email,
+        'plan'     => $plan,
+        'interval' => $interval,
+        'status'   => 'active',
+    ]);
 }
 
 // Disparado por customer.subscription.deleted (Stripe ya agotó los Smart
@@ -133,6 +143,30 @@ function ru_billing_handle_subscription_downgrade(array $data): void {
     // Punto de extensión para lo que todavía no existe (export automático
     // del sitio) — mismo patrón que ru_verified_* en verification.php.
     do_action('ru_client_subscription_downgraded', $user_id, $data);
+
+    ru_make_notify('subscription_downgraded', [
+        'email'  => $email,
+        'status' => 'inactive',
+        'reason' => $reason,
+    ]);
+}
+
+// Aviso saliente a Make, best-effort — si falla o no está configurado no
+// pasa nada, el estado real ya quedó guardado en WP antes de llamar a
+// esto. Nunca bloquea ni decide, solo informa (§7.12).
+function ru_make_notify(string $event, array $payload): void {
+    if (!defined('RU_MAKE_WEBHOOK_URL') || !RU_MAKE_WEBHOOK_URL) return;
+
+    wp_remote_post(RU_MAKE_WEBHOOK_URL, [
+        'timeout'  => 5,
+        'blocking' => false, // no espera respuesta, no puede colgar el request real
+        'headers'  => ['Content-Type' => 'application/json'],
+        'body'     => wp_json_encode([
+            'event'      => $event,
+            'occurred_at' => current_time('c'),
+            'site'       => home_url('/'),
+        ] + $payload),
+    ]);
 }
 
 // --- Webhook de Stripe: POST /wp-json/ru/v1/stripe-webhook ---------------

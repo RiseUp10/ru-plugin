@@ -642,7 +642,28 @@ paquete a mano. Dónde vive el staging/preview temporal tampoco está
 resuelto (queda como campo de texto libre, decisión de infraestructura
 aparte).
 
-## 7. Flujo real de SC, confirmado en detalle (referencia para construir el de RU)
+## 7.12 Decisión (15 sep 2026) — Control humano de pagos: WP avisa a Make, no al revés
+
+El founder necesita ver el estado de los clientes en una hoja de cálculo
+para trabajar (filtrar, tildar cosas a mano) — no alcanza con mirar
+Stripe. Se descartó la opción obvia (Make escucha los eventos de Stripe
+directo) porque repite el mismo problema que costó horas resolver hoy
+(§7.9): `invoice_payment.paid` sin metadata directa, precio no
+expandido, etc. — Make tendría que re-parsear todo eso de cero.
+
+**En cambio**: WP (que ya resolvió todo ese parseo) le avisa a Make,
+saliente, con el dato ya limpio. `ru_make_notify()` en `billing.php` —
+POST no bloqueante (`blocking => false`, timeout 5s) a
+`RU_MAKE_WEBHOOK_URL` (constante vacía por default en `ru-plugin.php`,
+fail-safe: si no está configurada o Make está caído, no pasa nada, el
+estado real en WP ya quedó guardado antes de llamar a esto). Se dispara
+desde `ru_billing_handle_subscription_activate/downgrade`, con email,
+plan, interval, status, reason.
+
+**Pendiente de tu lado**: armar en Make un escenario con trigger
+"Custom webhook" (te da la URL, se pega en `RU_MAKE_WEBHOOK_URL`) → un
+módulo de Google Sheets que agregue/actualice una fila (email como
+clave). Cero lógica de negocio en Make — solo recibe y vuelca.
 
 **Parte 1 — De la compra a la activación**
 

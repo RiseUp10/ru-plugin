@@ -32,6 +32,13 @@ if (!defined('STRIPE_WEBHOOK_SECRET')) {
     define('STRIPE_WEBHOOK_SECRET', '');
 }
 
+// URL del webhook de Make que recibe los avisos de activación/downgrade
+// (solo reporte, ver includes/billing.php ru_make_notify()) — vacío hasta
+// que armes el escenario en Make y pegues la URL acá o en wp-config.
+if (!defined('RU_MAKE_WEBHOOK_URL')) {
+    define('RU_MAKE_WEBHOOK_URL', '');
+}
+
 require_once plugin_dir_path(__FILE__) . 'includes/cpt-register.php';
 require_once plugin_dir_path(__FILE__) . 'includes/ai-helpers.php';
 require_once plugin_dir_path(__FILE__) . 'includes/email-helpers.php';
