@@ -425,6 +425,13 @@ add_action('edit_form_after_title', function ($post) {
             'pro_yearly'      => 'Pro — Annuale',
         ];
         $current_plan = $get('ru_delivery_plan');
+        $current_addons = $get('ru_delivery_addons') ?: [];
+        $current_hours  = $get('ru_delivery_custom_hours');
+
+        $email = $get('email');
+        $user  = $email ? get_user_by('email', $email) : false;
+        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
+        $hourly_rate = $has_sub ? 25 : 35;
 
         wp_nonce_field('ru_delivery_send', 'ru_delivery_send_nonce');
         echo '<div style="margin-top:20px; padding-top:15px; border-top:1px solid #ccd0d4;">';
@@ -434,8 +441,26 @@ add_action('edit_form_after_title', function ($post) {
             echo '<option value="' . esc_attr($value) . '" ' . selected($current_plan, $value, false) . '>' . esc_html($label) . '</option>';
         }
         echo '</select></p>';
-        echo '<p><label>Riepilogo contratto (incluso nel corpo dell\'email — scrivi qui cosa include esattamente: piano, add-on, prezzo totale, round di revisione, e la clausola di stabilità del prezzo)<br>';
-        echo '<textarea name="ru_delivery_contract_summary" rows="6" style="width:100%; max-width:600px;">' . esc_textarea($get('ru_delivery_contract_summary')) . '</textarea></label></p>';
+
+        echo '<p><strong>Add-on</strong> (lascia vuoto o 0 = non incluso — un prezzo &gt; 0 lo include automaticamente):</p>';
+        echo '<table class="widefat" style="max-width:500px;"><tbody>';
+        foreach (ru_delivery_addon_catalog() as $key => $label) {
+            $price = $current_addons[$key] ?? '';
+            echo '<tr><td>' . esc_html($label) . '</td><td><input type="number" step="0.01" min="0" name="ru_delivery_addon_price[' . esc_attr($key) . ']" value="' . esc_attr($price) . '" style="width:90px;"> €</td></tr>';
+        }
+        echo '<tr><td>Personalizzazione design (ore)<br><span style="color:#666; font-size:12px;">' . esc_html($hourly_rate) . '€/h — ' . ($has_sub ? 'con abbonamento' : 'senza abbonamento') . '</span></td><td><input type="number" step="0.5" min="0" name="ru_delivery_custom_hours" value="' . esc_attr($current_hours) . '" style="width:90px;"> h</td></tr>';
+        echo '</tbody></table>';
+
+        $extra_cost = ru_delivery_extra_cost($post_id);
+        echo '<p style="margin-top:10px;">Costo extra calcolato: <strong>' . number_format($extra_cost, 2) . '€</strong></p>';
+
+        if ($extra_cost > 0) {
+            echo '<p><label>URL pagamento combinato (1€ + extra, da creare a mano su Stripe)<br>';
+            echo '<input type="text" name="ru_delivery_combined_payment_url" value="' . esc_attr($get('ru_delivery_combined_payment_url')) . '" style="width:100%; max-width:500px;"></label></p>';
+        } else {
+            echo '<p style="color:#666; font-size:12px;">Senza costo extra si usa il link fisso da 1€ — non serve niente qui.</p>';
+        }
+
         echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
         $last_sent = $get('ru_delivery_payment_links_sent_at');
         if ($last_sent) {
@@ -462,6 +487,64 @@ function ru_delivery_plan_checkout_url(string $plan): string {
     return $map[$plan] ?? '';
 }
 
+// Catálogo de add-ons — solo etiquetas, sin precio fijo (el founder lo
+// escribe por cliente, evita hardcodear precios que pueden estar
+// desactualizados — ver discusión 14 sep 2026).
+function ru_delivery_addon_catalog(): array {
+    return [
+        'lingua_extra'     => 'Lingua extra',
+        'pagina_extra'     => 'Pagina extra',
+        'catalogo'         => 'Catalogo prodotti',
+        'ecommerce'        => 'Pagamento online / ecommerce',
+        'carico_prodotti'  => 'Caricamento prodotti/servizi',
+        'copywriting'      => 'Copywriting professionale',
+        'branding'         => 'Branding/logo',
+    ];
+}
+
+// Suma add-ons (precio ya escrito a mano por ítem) + horas de
+// personalización de diseño × tarifa (35€/h sin abbonamento, 25€/h con
+// abbonamento — ver RU-SUBSCRIPTION-SYSTEM-PLAN.md §7.6.1).
+function ru_delivery_extra_cost(int $post_id): float {
+    $addons = get_post_meta($post_id, 'ru_delivery_addons', true) ?: [];
+    $total  = array_sum($addons);
+
+    $hours = (float) get_post_meta($post_id, 'ru_delivery_custom_hours', true);
+    if ($hours > 0) {
+        $email   = get_post_meta($post_id, 'email', true);
+        $user    = $email ? get_user_by('email', $email) : false;
+        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
+        $total  += $hours * ($has_sub ? 25 : 35);
+    }
+
+    return $total;
+}
+
+// Líneas para mostrar en el mail (label + precio ya resuelto), incluida
+// la de horas de diseño si corresponde.
+function ru_delivery_addon_lines(int $post_id): array {
+    $catalog = ru_delivery_addon_catalog();
+    $addons  = get_post_meta($post_id, 'ru_delivery_addons', true) ?: [];
+    $lines   = [];
+
+    foreach ($addons as $key => $price) {
+        if ($price > 0) {
+            $lines[] = ['label' => $catalog[$key] ?? $key, 'price' => (float) $price];
+        }
+    }
+
+    $hours = (float) get_post_meta($post_id, 'ru_delivery_custom_hours', true);
+    if ($hours > 0) {
+        $email   = get_post_meta($post_id, 'email', true);
+        $user    = $email ? get_user_by('email', $email) : false;
+        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
+        $rate    = $has_sub ? 25 : 35;
+        $lines[] = ['label' => "Personalizzazione design ({$hours}h × {$rate}€/h)", 'price' => $hours * $rate];
+    }
+
+    return $lines;
+}
+
 // Igual que ru_application_decision_nonce arriba — checkbox se resetea
 // solo (nunca se re-marca automáticamente), así "Aggiorna" de nuevo sin
 // tocarlo no reenvía el mail.
@@ -474,8 +557,16 @@ add_action('save_post_ru_application', function ($post_id) {
     $plan = sanitize_key($_POST['ru_delivery_plan'] ?? '');
     update_post_meta($post_id, 'ru_delivery_plan', $plan);
 
-    if (isset($_POST['ru_delivery_contract_summary'])) {
-        update_post_meta($post_id, 'ru_delivery_contract_summary', sanitize_textarea_field($_POST['ru_delivery_contract_summary']));
+    $addons = [];
+    foreach (array_keys(ru_delivery_addon_catalog()) as $key) {
+        $price = isset($_POST['ru_delivery_addon_price'][$key]) ? (float) $_POST['ru_delivery_addon_price'][$key] : 0;
+        if ($price > 0) $addons[$key] = $price;
+    }
+    update_post_meta($post_id, 'ru_delivery_addons', $addons);
+    update_post_meta($post_id, 'ru_delivery_custom_hours', max(0, (float) ($_POST['ru_delivery_custom_hours'] ?? 0)));
+
+    if (isset($_POST['ru_delivery_combined_payment_url'])) {
+        update_post_meta($post_id, 'ru_delivery_combined_payment_url', esc_url_raw($_POST['ru_delivery_combined_payment_url']));
     }
 
     if (empty($_POST['ru_delivery_send_payment_links'])) return; // checkbox no tildado, no manda nada
@@ -483,15 +574,21 @@ add_action('save_post_ru_application', function ($post_id) {
     $email = get_post_meta($post_id, 'email', true);
     if (!$email) return;
 
+    $extra_cost = ru_delivery_extra_cost($post_id);
+    $site_url = $extra_cost > 0
+        ? get_post_meta($post_id, 'ru_delivery_combined_payment_url', true)
+        : (defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '');
+
     riseup_send_email([
         'to'       => $email,
         'subject'  => 'I link per procedere con RiseUp',
         'template' => 'payment-links',
         'data'     => [
-            'site_url'          => defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '',
-            'plan_url'          => ru_delivery_plan_checkout_url($plan),
-            'contract_summary'  => get_post_meta($post_id, 'ru_delivery_contract_summary', true),
-            'terms_url'         => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
+            'site_url'    => $site_url,
+            'plan_url'    => ru_delivery_plan_checkout_url($plan),
+            'addon_lines' => ru_delivery_addon_lines($post_id),
+            'extra_cost'  => $extra_cost,
+            'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
         ],
     ]);
 

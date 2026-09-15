@@ -568,12 +568,32 @@ contrato dinámico en sí se construya — no es parte de este build).
 wp-admin, visible solo cuando la decisión es "Approvata" — dropdown de
 plan (los 6 + "solo sitio sin abono") + checkbox "Invia email" (mismo
 patrón de auto-reset que la decisión, no reenvía si guardás sin
-tildarlo de nuevo). Manda `RU_CHECKOUT_SITE_BASE_URL` siempre + el link
-recurrente que corresponda al plan elegido (o ninguno, si es "solo
-sitio") + el link al contrato si `RU_CONTRACT_URL` ya está cargada.
-Las llamadas/mails para decidir qué plan quiere el cliente siguen siendo
-100% manuales — este mecanismo solo automatiza el envío final de los
-links, no la conversación previa.
+tildarlo de nuevo). Las llamadas/mails para decidir qué plan quiere el
+cliente siguen siendo 100% manuales — este mecanismo solo automatiza el
+envío final de los links, no la conversación previa.
+
+**Rediseñado (15 sep 2026) — reemplaza el textarea libre del contrato**:
+en vez de un campo de texto donde el founder escribía todo a mano, ahora
+hay una tabla de **add-ons con un campo de precio por ítem** (catálogo
+fijo de etiquetas, sin precio hardcodeado — el founder lo escribe por
+cliente, ver `ru_delivery_addon_catalog()`) + un campo de **horas de
+personalización de diseño**, que calcula solo el costo (35€/h sin
+abono, 25€/h con abono, ver §7.6.1). Un precio > 0 en un ítem ya lo
+marca como incluido, sin checkbox aparte.
+
+- **Costo extra = 0** (caso simple): se manda el link fijo de siempre
+  (`RU_CHECKOUT_SITE_BASE_URL`, 1€).
+- **Costo extra > 0**: aparece un campo nuevo, **URL pagamento
+  combinato** — el founder crea a mano un Payment Link/Invoice en
+  Stripe por 1€+extra y lo pega ahí; ese es el que se manda en vez del
+  fijo.
+- El mail (`payment-links` template) arma la tabla itemizada + total
+  solo, y la cláusula de estabilidad de precio ahora es **texto fijo en
+  el template**, no algo que el founder tenga que volver a escribir por
+  cliente (antes vivía en el textarea libre, se perdía si se olvidaba
+  de incluirla).
+- `ru_delivery_contract_summary` (el campo viejo) queda huérfano en la
+  base de datos, sin usarse — no se limpia, no molesta.
 
 ## 7.11 Decisión (14 sep 2026) — Flow 3 (Acceptance), versión simplificada
 

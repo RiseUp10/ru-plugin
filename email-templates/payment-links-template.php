@@ -5,7 +5,7 @@
     <p>Ecco i link per procedere:</p>
 
     <?php if (!empty($site_url)): ?>
-        <p><strong>Il tuo sito (una tantum):</strong><br>
+        <p><strong>Il tuo sito<?= !empty($extra_cost) ? ' + extra' : ' (una tantum)' ?>:</strong><br>
         <a href="<?= esc_url($site_url) ?>" style="color:#EEEBEB;"><?= esc_html($site_url) ?></a></p>
     <?php endif; ?>
 
@@ -17,10 +17,20 @@
         ricorrente da completare.</p>
     <?php endif; ?>
 
-    <?php if (!empty($contract_summary)): ?>
-        <p><strong>Riepilogo di cosa hai scelto:</strong></p>
-        <p style="white-space:pre-line; border-left:2px solid #EEEBEB; padding-left:12px;"><?= nl2br(esc_html($contract_summary)) ?></p>
+    <?php if (!empty($addon_lines)): ?>
+        <p><strong>Cosa include il totale di oggi:</strong></p>
+        <table style="width:100%; max-width:500px; border-collapse:collapse;">
+            <tr><td style="padding:2px 0;">Sito base</td><td style="text-align:right;">1€</td></tr>
+            <?php foreach ($addon_lines as $line): ?>
+                <tr><td style="padding:2px 0;"><?= esc_html($line['label']) ?></td><td style="text-align:right;"><?= esc_html(number_format($line['price'], 2)) ?>€</td></tr>
+            <?php endforeach; ?>
+            <tr><td style="padding:6px 0; border-top:1px solid #EEEBEB;"><strong>Totale</strong></td><td style="text-align:right; padding:6px 0; border-top:1px solid #EEEBEB;"><strong><?= esc_html(number_format(1 + $extra_cost, 2)) ?>€</strong></td></tr>
+        </table>
     <?php endif; ?>
+
+    <p style="font-size:13px; color:#bbb;">L'importo indicato è definitivo. Cambia solo se: richiedi
+    funzionalità aggiuntive, superi le revisioni incluse, o chiedi un cambio di stile/design diverso
+    da quello scelto, in questi casi ti presentiamo un preventivo chiuso prima di iniziare.</p>
 
     <?php if (!empty($terms_url)): ?>
         <p style="font-size:12px; color:#bbb;">Questo riepilogo si aggiunge alle
