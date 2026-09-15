@@ -636,7 +636,7 @@ add_action('save_post_ru_application', function ($post_id) {
 // ---------------------------------------------------------------------
 
 if (!defined('RU_ONBOARDING_FORM_URL')) {
-    define('RU_ONBOARDING_FORM_URL', 'https://docs.google.com/forms/d/e/1FAIpQLSc-c-v7PeWG-YhaQIo79NsJdpMWV0Obu5kkN1DcZJ5TRZXNXg/viewform?usp=dialog');
+    define('RU_ONBOARDING_FORM_URL', 'https://docs.google.com/forms/d/e/1FAIpQLSc-c-v7PeWG-YhaQIo79NsJdpMWV0Obu5kkN1DcZJ5TRZXNXg/viewform?usp=dialog&hl=it');
 }
 
 // TODO: reemplazar por la URL real de la página de Condizioni Generali
