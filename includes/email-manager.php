@@ -126,6 +126,7 @@ function riseup_send_email($args = []) {
         'site-preview', 'site_preview'         => 'email-templates/site-preview-template.php',
         'site-approved', 'site_approved'       => 'email-templates/site-approved-template.php',
         'site-download', 'site_download'       => 'email-templates/site-download-template.php',
+        'contract'                              => 'email-templates/contract-template.php',
         default                               => ''
     };
 

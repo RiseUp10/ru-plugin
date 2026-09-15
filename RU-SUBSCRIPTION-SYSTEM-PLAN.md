@@ -665,6 +665,34 @@ plan, interval, status, reason.
 módulo de Google Sheets que agregue/actualice una fila (email como
 clave). Cero lógica de negocio en Make — solo recibe y vuelca.
 
+## 7.13 Decisión (15 sep 2026) — Contrato final, separado del mail de links de pago
+
+El "contrato dinámico" de §7.10 vivía mezclado adentro del mail de
+links de pago — se separa en dos cosas distintas:
+
+- **Mail de links de pago** (`payment-links`): se manda cuando corresponda
+  en la negociación, puede repetirse si el pedido cambia. Se queda con
+  la tabla de add-ons (foto del momento, puede no coincidir con envíos
+  anteriores, es la evolución normal de la negociación) pero **sin** la
+  cláusula de estabilidad de precio.
+- **Contrato final** (`contract`, template nuevo): mail separado,
+  disparado por un checkbox nuevo, **"Ordine concluso, invia il
+  contratto finale"**, en el mismo bloque de Flow 2. Siempre muestra la
+  tabla completa + la cláusula de estabilidad de precio + el link a
+  Condiciones Generales — sin condicionar a que haya add-ons.
+
+**Por qué es manual, no automático por webhook**: no hay forma
+confiable de que WP sepa "ya está todo pagado" — los add-ons/diseño
+custom se cobran con links ad-hoc que no todos avisan a WP (ver
+discusión sobre `checkout.session.completed`, pendiente sin construir).
+El founder es quien realmente sabe cuándo el pedido quedó cerrado.
+
+**Vuelve a leer los datos frescos en cada envío**: como el checkbox vive
+en el mismo formulario que los campos de add-ons, `ru_delivery_addon_lines()`/
+`ru_delivery_extra_cost()` calculan con lo que se acaba de guardar en
+ese mismo submit — si el pedido cambió desde el último envío, el
+contrato sale actualizado, no una foto vieja.
+
 **Parte 1 — De la compra a la activación**
 
 1. El usuario elige un plan en la página de precios. El link de pago lleva

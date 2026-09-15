@@ -28,10 +28,6 @@
         </table>
     <?php endif; ?>
 
-    <p style="font-size:13px; color:#bbb;">L'importo indicato è definitivo. Cambia solo se: richiedi
-    funzionalità aggiuntive, superi le revisioni incluse, o chiedi un cambio di stile/design diverso
-    da quello scelto, in questi casi ti presentiamo un preventivo chiuso prima di iniziare.</p>
-
     <?php if (!empty($terms_url)): ?>
         <p style="font-size:12px; color:#bbb;">Questo riepilogo si aggiunge alle
         <a href="<?= esc_url($terms_url) ?>" style="color:#bbb;">Condizioni Generali</a> complete, che restano valide per tutto il resto.</p>

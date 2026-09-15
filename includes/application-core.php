@@ -414,16 +414,7 @@ add_action('edit_form_after_title', function ($post) {
     // una vez aprobada (y después de las llamadas/mails manuales donde se
     // definió qué plan quiere) — por eso el bloque no aparece antes.
     if ($decision === 'approved') {
-        $plan_options = [
-            ''                => 'Scegli...',
-            'none'            => 'Solo sito (senza abbonamento)',
-            'base_monthly'    => 'Base, Mensile',
-            'base_yearly'     => 'Base, Annuale',
-            'plus_monthly'    => 'Plus, Mensile',
-            'plus_yearly'     => 'Plus, Annuale',
-            'pro_monthly'     => 'Pro, Mensile',
-            'pro_yearly'      => 'Pro, Annuale',
-        ];
+        $plan_options = ru_delivery_plan_labels();
         $current_plan = $get('ru_delivery_plan');
         $current_addons = $get('ru_delivery_addons') ?: [];
 
@@ -459,11 +450,38 @@ add_action('edit_form_after_title', function ($post) {
         if ($last_sent) {
             echo '<p style="color:#666; font-size:12px;">Ultimo invio: ' . esc_html($last_sent) . '</p>';
         }
+
+        echo '<hr style="margin:15px 0;">';
+        echo '<p><label><input type="checkbox" name="ru_delivery_send_contract" value="1"> Ordine concluso, invia il contratto finale</label></p>';
+        $contract_sent = $get('ru_delivery_contract_sent_at');
+        if ($contract_sent) {
+            echo '<p style="color:#666; font-size:12px;">Ultimo invio: ' . esc_html($contract_sent) . '</p>';
+        }
         echo '</div>';
     }
 
     echo '</div>';
 });
+
+// Labels legibles por plan — usado en el dropdown del admin y en el mail
+// del contrato (ru_delivery_plan_label()).
+function ru_delivery_plan_labels(): array {
+    return [
+        ''                => 'Scegli...',
+        'none'            => 'Solo sito (senza abbonamento)',
+        'base_monthly'    => 'Base, Mensile',
+        'base_yearly'     => 'Base, Annuale',
+        'plus_monthly'    => 'Plus, Mensile',
+        'plus_yearly'     => 'Plus, Annuale',
+        'pro_monthly'     => 'Pro, Mensile',
+        'pro_yearly'      => 'Pro, Annuale',
+    ];
+}
+
+function ru_delivery_plan_label(string $plan): string {
+    $labels = ru_delivery_plan_labels();
+    return ($plan && $plan !== 'none') ? ($labels[$plan] ?? '') : '';
+}
 
 // Mapea el plan elegido a la constante RU_CHECKOUT_*_URL correspondiente
 // (definidas en ru-plugin.php). 'none' o vacío = sin link recurrente, solo
@@ -543,30 +561,50 @@ add_action('save_post_ru_application', function ($post_id) {
         update_post_meta($post_id, 'ru_delivery_combined_payment_url', esc_url_raw($_POST['ru_delivery_combined_payment_url']));
     }
 
-    if (empty($_POST['ru_delivery_send_payment_links'])) return; // checkbox no tildado, no manda nada
-
     $email = get_post_meta($post_id, 'email', true);
-    if (!$email) return;
 
-    $extra_cost = ru_delivery_extra_cost($post_id);
-    $site_url = $extra_cost > 0
-        ? get_post_meta($post_id, 'ru_delivery_combined_payment_url', true)
-        : (defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '');
+    // Los dos envíos son independientes — tildar uno no depende del otro,
+    // así que no hay return temprano que se salte el segundo checkbox.
+    if ($email && !empty($_POST['ru_delivery_send_payment_links'])) {
+        $extra_cost = ru_delivery_extra_cost($post_id);
+        $site_url = $extra_cost > 0
+            ? get_post_meta($post_id, 'ru_delivery_combined_payment_url', true)
+            : (defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '');
 
-    riseup_send_email([
-        'to'       => $email,
-        'subject'  => 'I link per procedere con RiseUp',
-        'template' => 'payment-links',
-        'data'     => [
-            'site_url'    => $site_url,
-            'plan_url'    => ru_delivery_plan_checkout_url($plan),
-            'addon_lines' => ru_delivery_addon_lines($post_id),
-            'extra_cost'  => $extra_cost,
-            'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
-        ],
-    ]);
+        riseup_send_email([
+            'to'       => $email,
+            'subject'  => 'I link per procedere con RiseUp',
+            'template' => 'payment-links',
+            'data'     => [
+                'site_url'    => $site_url,
+                'plan_url'    => ru_delivery_plan_checkout_url($plan),
+                'addon_lines' => ru_delivery_addon_lines($post_id),
+                'extra_cost'  => $extra_cost,
+                'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
+            ],
+        ]);
 
-    update_post_meta($post_id, 'ru_delivery_payment_links_sent_at', current_time('mysql'));
+        update_post_meta($post_id, 'ru_delivery_payment_links_sent_at', current_time('mysql'));
+    }
+
+    // Contrato final — se puede mandar en cualquier momento, incluso antes
+    // o sin el mail de links de pago, y las veces que haga falta si el
+    // pedido cambia (siempre lee plan/add-ons frescos del mismo guardado).
+    if ($email && !empty($_POST['ru_delivery_send_contract'])) {
+        riseup_send_email([
+            'to'       => $email,
+            'subject'  => 'Il tuo contratto RiseUp',
+            'template' => 'contract',
+            'data'     => [
+                'addon_lines' => ru_delivery_addon_lines($post_id),
+                'extra_cost'  => ru_delivery_extra_cost($post_id),
+                'plan_label'  => ru_delivery_plan_label($plan),
+                'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
+            ],
+        ]);
+
+        update_post_meta($post_id, 'ru_delivery_contract_sent_at', current_time('mysql'));
+    }
 }, 20); // prioridad 20: corre después del hook de la decisión (default 10)
 
 // Guarda la decisión y dispara el mail correspondiente — solo si el
