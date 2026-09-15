@@ -36,7 +36,7 @@ if (!defined('STRIPE_WEBHOOK_SECRET')) {
 // (solo reporte, ver includes/billing.php ru_make_notify()) — vacío hasta
 // que armes el escenario en Make y pegues la URL acá o en wp-config.
 if (!defined('RU_MAKE_WEBHOOK_URL')) {
-    define('RU_MAKE_WEBHOOK_URL', '');
+    define('RU_MAKE_WEBHOOK_URL', 'https://hook.eu1.make.com/tg56viokel61aoiv6zwxfcus3hfgg20c7');
 }
 
 require_once plugin_dir_path(__FILE__) . 'includes/cpt-register.php';
