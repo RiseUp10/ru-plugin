@@ -134,7 +134,7 @@ function ru_application_resend_email() {
     $sent = ru_dispatch_verification_email($post_id);
     wp_send_json([
         'success' => (bool) $sent,
-        'message' => $sent ? 'Email reinviata — controlla la tua casella.' : 'Errore nell\'invio. Riprova tra poco.',
+        'message' => $sent ? 'Email reinviata, controlla la tua casella.' : 'Errore nell\'invio. Riprova tra poco.',
     ]);
 }
 
@@ -446,17 +446,11 @@ add_action('edit_form_after_title', function ($post) {
         }
 
         echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
-        $last_sent = $get('ru_delivery_payment_links_sent_at');
-        if ($last_sent) {
-            echo '<p style="color:#666; font-size:12px;">Ultimo invio: ' . esc_html($last_sent) . '</p>';
-        }
+        ru_delivery_render_log($get('ru_delivery_payment_links_log') ?: []);
 
         echo '<hr style="margin:15px 0;">';
         echo '<p><label><input type="checkbox" name="ru_delivery_send_contract" value="1"> Ordine concluso, invia il contratto finale</label></p>';
-        $contract_sent = $get('ru_delivery_contract_sent_at');
-        if ($contract_sent) {
-            echo '<p style="color:#666; font-size:12px;">Ultimo invio: ' . esc_html($contract_sent) . '</p>';
-        }
+        ru_delivery_render_log($get('ru_delivery_contract_log') ?: []);
         echo '</div>';
     }
 
@@ -481,6 +475,28 @@ function ru_delivery_plan_labels(): array {
 function ru_delivery_plan_label(string $plan): string {
     $labels = ru_delivery_plan_labels();
     return ($plan && $plan !== 'none') ? ($labels[$plan] ?? '') : '';
+}
+
+// Log acumulativo de envíos (links de pago o contrato) — cada entrada es
+// una foto de lo que se mandó en ese momento, no solo la fecha. El pedido
+// puede cambiar de un envío a otro (evolución normal de la negociación),
+// así que interesa ver el historial completo, no solo el último.
+function ru_delivery_render_log(array $log): void {
+    if (empty($log)) return;
+
+    echo '<details style="margin-top:8px;"><summary style="cursor:pointer; color:#666; font-size:12px;">Storico invii (' . count($log) . ')</summary>';
+    echo '<ul style="font-size:12px; color:#666; margin-top:6px;">';
+    foreach (array_reverse($log) as $entry) {
+        $bits = [];
+        if (!empty($entry['plan_label'])) $bits[] = $entry['plan_label'];
+        foreach ($entry['addon_lines'] ?? [] as $line) {
+            $bits[] = $line['label'] . ' (' . number_format($line['price'], 2) . '€)';
+        }
+        $summary = $bits ? implode(', ', $bits) : 'nessun add-on';
+        $total = isset($entry['extra_cost']) ? number_format(1 + $entry['extra_cost'], 2) . '€' : '';
+        echo '<li>' . esc_html($entry['sent_at'] ?? '') . ': ' . esc_html($summary) . ($total ? ' (totale ' . esc_html($total) . ')' : '') . '</li>';
+    }
+    echo '</ul></details>';
 }
 
 // Mapea el plan elegido a la constante RU_CHECKOUT_*_URL correspondiente
@@ -566,7 +582,8 @@ add_action('save_post_ru_application', function ($post_id) {
     // Los dos envíos son independientes — tildar uno no depende del otro,
     // así que no hay return temprano que se salte el segundo checkbox.
     if ($email && !empty($_POST['ru_delivery_send_payment_links'])) {
-        $extra_cost = ru_delivery_extra_cost($post_id);
+        $extra_cost  = ru_delivery_extra_cost($post_id);
+        $addon_lines = ru_delivery_addon_lines($post_id);
         $site_url = $extra_cost > 0
             ? get_post_meta($post_id, 'ru_delivery_combined_payment_url', true)
             : (defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '');
@@ -578,32 +595,49 @@ add_action('save_post_ru_application', function ($post_id) {
             'data'     => [
                 'site_url'    => $site_url,
                 'plan_url'    => ru_delivery_plan_checkout_url($plan),
-                'addon_lines' => ru_delivery_addon_lines($post_id),
+                'addon_lines' => $addon_lines,
                 'extra_cost'  => $extra_cost,
                 'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
             ],
         ]);
 
-        update_post_meta($post_id, 'ru_delivery_payment_links_sent_at', current_time('mysql'));
+        $log = get_post_meta($post_id, 'ru_delivery_payment_links_log', true) ?: [];
+        $log[] = [
+            'sent_at'     => current_time('mysql'),
+            'plan_label'  => ru_delivery_plan_label($plan),
+            'addon_lines' => $addon_lines,
+            'extra_cost'  => $extra_cost,
+        ];
+        update_post_meta($post_id, 'ru_delivery_payment_links_log', $log);
     }
 
     // Contrato final — se puede mandar en cualquier momento, incluso antes
     // o sin el mail de links de pago, y las veces que haga falta si el
     // pedido cambia (siempre lee plan/add-ons frescos del mismo guardado).
     if ($email && !empty($_POST['ru_delivery_send_contract'])) {
+        $extra_cost  = ru_delivery_extra_cost($post_id);
+        $addon_lines = ru_delivery_addon_lines($post_id);
+
         riseup_send_email([
             'to'       => $email,
             'subject'  => 'Il tuo contratto RiseUp',
             'template' => 'contract',
             'data'     => [
-                'addon_lines' => ru_delivery_addon_lines($post_id),
-                'extra_cost'  => ru_delivery_extra_cost($post_id),
+                'addon_lines' => $addon_lines,
+                'extra_cost'  => $extra_cost,
                 'plan_label'  => ru_delivery_plan_label($plan),
                 'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
             ],
         ]);
 
-        update_post_meta($post_id, 'ru_delivery_contract_sent_at', current_time('mysql'));
+        $log = get_post_meta($post_id, 'ru_delivery_contract_log', true) ?: [];
+        $log[] = [
+            'sent_at'     => current_time('mysql'),
+            'plan_label'  => ru_delivery_plan_label($plan),
+            'addon_lines' => $addon_lines,
+            'extra_cost'  => $extra_cost,
+        ];
+        update_post_meta($post_id, 'ru_delivery_contract_log', $log);
     }
 }, 20); // prioridad 20: corre después del hook de la decisión (default 10)
 

@@ -693,6 +693,17 @@ en el mismo formulario que los campos de add-ons, `ru_delivery_addon_lines()`/
 ese mismo submit — si el pedido cambió desde el último envío, el
 contrato sale actualizado, no una foto vieja.
 
+**Ampliado (15 sep 2026) — log completo de envíos, no solo el último**:
+`ru_delivery_payment_links_sent_at`/`ru_delivery_contract_sent_at` (un
+timestamp que se pisaba) pasaron a `ru_delivery_payment_links_log`/
+`ru_delivery_contract_log` — listas que se van acumulando, cada entrada
+con fecha + foto de lo que se mandó en ese momento (plan, add-ons,
+total). Se muestra en el admin como un `<details>` colapsable ("Storico
+invii (N)") debajo de cada checkbox, más reciente primero. Como el
+pedido puede cambiar de un envío a otro (evolución normal de la
+negociación), interesa ver el historial completo, no solo el estado
+actual.
+
 **Parte 1 — De la compra a la activación**
 
 1. El usuario elige un plan en la página de precios. El link de pago lleva
