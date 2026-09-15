@@ -448,6 +448,14 @@ add_action('edit_form_after_title', function ($post) {
         echo '<p><label><input type="checkbox" name="ru_delivery_send_payment_links" value="1"> Invia (o re-invia) l\'email con i link di pagamento</label></p>';
         ru_delivery_render_log($get('ru_delivery_payment_links_log') ?: []);
 
+        $clause_approved_at = $get('ru_delivery_clause_approved_at');
+        if ($clause_approved_at) {
+            $clause_approved_ip = $get('ru_delivery_clause_approved_ip');
+            echo '<p style="font-size:12px; color:#666;">Clausole vessatorie (art. 14) approvate il ' . esc_html($clause_approved_at) . ($clause_approved_ip ? ' da ' . esc_html($clause_approved_ip) : '') . '.</p>';
+        } else {
+            echo '<p style="font-size:12px; color:#a00;">Clausole vessatorie (art. 14) non ancora approvate dal cliente.</p>';
+        }
+
         echo '<hr style="margin:15px 0;">';
         echo '<p><label><input type="checkbox" name="ru_delivery_send_contract" value="1"> Ordine concluso, invia il contratto finale</label></p>';
         ru_delivery_render_log($get('ru_delivery_contract_log') ?: []);
@@ -588,16 +596,36 @@ add_action('save_post_ru_application', function ($post_id) {
             ? get_post_meta($post_id, 'ru_delivery_combined_payment_url', true)
             : (defined('RU_CHECKOUT_SITE_BASE_URL') ? RU_CHECKOUT_SITE_BASE_URL : '');
 
+        // Token para la aprobación específica de cláusulas vessatorie
+        // (art. 14 Condizioni Generali) — persistente, no se regenera en
+        // cada reenvío. Tiene que existir antes/junto con el pago, porque
+        // el art. 1.2 liga la perfección del contrato al momento del
+        // pago (Stripe Checkout no permite agregar un checkbox propio,
+        // por eso va acá como link separado, mismo patrón que "Conferma
+        // il sito" en Flow 3).
+        $clause_token = get_post_meta($post_id, 'ru_delivery_clause_token', true);
+        if (!$clause_token) {
+            $clause_token = wp_generate_password(32, false);
+            update_post_meta($post_id, 'ru_delivery_clause_token', $clause_token);
+        }
+        $clause_approve_url = add_query_arg([
+            'action'  => 'ru_delivery_approve_clauses',
+            'post_id' => $post_id,
+            'token'   => $clause_token,
+        ], admin_url('admin-ajax.php'));
+
         riseup_send_email([
             'to'       => $email,
             'subject'  => 'I link per procedere con RiseUp',
             'template' => 'payment-links',
             'data'     => [
-                'site_url'    => $site_url,
-                'plan_url'    => ru_delivery_plan_checkout_url($plan),
-                'addon_lines' => $addon_lines,
-                'extra_cost'  => $extra_cost,
-                'terms_url'   => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
+                'site_url'           => $site_url,
+                'plan_url'           => ru_delivery_plan_checkout_url($plan),
+                'addon_lines'        => $addon_lines,
+                'extra_cost'         => $extra_cost,
+                'terms_url'          => defined('RU_TERMS_URL') ? RU_TERMS_URL : '',
+                'clause_approve_url' => $clause_approve_url,
+                'clause_approved'    => (bool) get_post_meta($post_id, 'ru_delivery_clause_approved_at', true),
             ],
         ]);
 
@@ -673,11 +701,8 @@ if (!defined('RU_ONBOARDING_FORM_URL')) {
     define('RU_ONBOARDING_FORM_URL', 'https://docs.google.com/forms/d/e/1FAIpQLSc-c-v7PeWG-YhaQIo79NsJdpMWV0Obu5kkN1DcZJ5TRZXNXg/viewform?usp=dialog&hl=it');
 }
 
-// TODO: reemplazar por la URL real de la página de Condizioni Generali
-// en el sitio (sección 7.10) — mientras esté vacío, el mail de
-// payment-links no muestra el link de referencia.
 if (!defined('RU_TERMS_URL')) {
-    define('RU_TERMS_URL', '');
+    define('RU_TERMS_URL', 'https://riseup.marketing/condizioni-generali/');
 }
 
 add_action('ru_application_decision_approved', function ($post_id) {
@@ -702,3 +727,40 @@ add_action('ru_application_decision_rejected', function ($post_id) {
         'template' => 'application-rejected',
     ]);
 });
+
+// ---------------------------------------------------------------------
+// Aprobación específica de cláusulas vessatorie (art. 14 Condizioni
+// Generali, artt. 1341-1342 c.c.) — link simple en el mail de links de
+// pago, mismo mecanismo que "Conferma il sito" en delivery-core.php.
+// Bozza, implementado provisionalmente hasta validación con abogado.
+// ---------------------------------------------------------------------
+
+add_action('wp_ajax_ru_delivery_approve_clauses', 'ru_delivery_approve_clauses');
+add_action('wp_ajax_nopriv_ru_delivery_approve_clauses', 'ru_delivery_approve_clauses');
+
+function ru_delivery_approve_clauses() {
+    $post_id = absint($_GET['post_id'] ?? 0);
+    $token   = sanitize_text_field($_GET['token'] ?? '');
+
+    $message = function ($text) {
+        wp_die(esc_html($text), '', ['response' => 200]);
+    };
+
+    if (!$post_id || get_post_type($post_id) !== 'ru_application') {
+        $message('Link non valido.');
+    }
+
+    $stored_token = get_post_meta($post_id, 'ru_delivery_clause_token', true);
+    if (!$stored_token || !$token || !hash_equals($stored_token, $token)) {
+        $message('Link non valido.');
+    }
+
+    if (get_post_meta($post_id, 'ru_delivery_clause_approved_at', true)) {
+        $message('Avevi già approvato queste clausole, grazie di nuovo!');
+    }
+
+    update_post_meta($post_id, 'ru_delivery_clause_approved_at', current_time('mysql'));
+    update_post_meta($post_id, 'ru_delivery_clause_approved_ip', sanitize_text_field($_SERVER['REMOTE_ADDR'] ?? ''));
+
+    $message('Grazie! Approvazione registrata.');
+}

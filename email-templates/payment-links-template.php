@@ -33,6 +33,31 @@
         <a href="<?= esc_url($terms_url) ?>" style="color:#bbb;">Condizioni Generali</a> complete, che restano valide per tutto il resto.</p>
     <?php endif; ?>
 
+    <?php if (!empty($clause_approve_url)): ?>
+        <div style="margin:24px 0; padding:16px; border:1px solid #EEEBEB; border-radius:8px;">
+            <p style="margin-top:0;"><strong>Un'ultima cosa prima di pagare.</strong></p>
+            <p>Ai sensi degli artt. 1341 e 1342 del codice civile, ti chiediamo
+            di approvare specificamente questo passaggio delle Condizioni
+            Generali (art. 14):</p>
+            <p style="font-style:italic; color:#ddd;">&ldquo;Ai sensi e per gli
+            effetti degli artt. 1341 e 1342 c.c., dichiaro di approvare
+            specificamente le seguenti clausole: 4.6 (rimozione contenuti), 9
+            (limitazione di responsabilità), 10 (risoluzione e penali), 12
+            (decadenza), 13 (foro competente).&rdquo;</p>
+            <?php if (!empty($clause_approved)): ?>
+                <p style="color:#9ddc9d;">Hai già approvato queste clausole, grazie.</p>
+            <?php else: ?>
+                <p>
+                    <a href="<?= esc_url($clause_approve_url) ?>" style="display:inline-block; padding:10px 20px; border:1px solid #EEEBEB; background:#150505; color:#EEEBEB; text-decoration:none; border-radius:20px;">
+                        Approvo specificamente queste clausole
+                    </a>
+                </p>
+                <p style="font-size:12px; color:#bbb;">Ti chiediamo di farlo
+                prima di completare il pagamento.</p>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <p>Hai un dubbio nel frattempo? Rispondi pure a questa email, ti
     risponde una persona vera, non un sistema automatico.</p>
 

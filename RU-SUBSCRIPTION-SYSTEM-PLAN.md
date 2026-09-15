@@ -739,6 +739,51 @@ actual.
   mueven datos y disparan avisos. La única que decide si el plan cambia es
   el sitio principal.
 
+## 7.14 Decisión (15 sep 2026) — Aprobación específica de cláusulas vessatorie (art. 14)
+
+Al publicarse la versión completa de las Condizioni Generali en
+`riseup.marketing`, quedó explícito el art. 14: bajo artt. 1341-1342
+c.c., ciertas cláusulas (4.6 remoción de contenidos, 9 limitación de
+responsabilidad, 10 resolución y penales, 12 decadencia, 13 foro
+competente) necesitan aprobación específica y separada del cliente, no
+alcanza con el link genérico a "Condizioni Generali" al pie del mail.
+
+**Autorización explícita del founder**: implementar esto de forma
+provisoria hasta validar con un abogado ("hagamoslo momentaneamente
+hasta que hable con un abogado").
+
+**Dónde vive el check, y por qué ahí**: en el mail de links de pago
+(`payment-links`), no en el mail de contrato final. El art. 1.2 de las
+Condizioni Generali dice que el contrato se perfecciona en el momento
+del pago, no antes ni en un paso posterior — así que la aprobación
+específica tiene que estar disponible antes de o junto con el pago, no
+después. Stripe Payment Links (hosted checkout) no permite agregar un
+segundo checkbox custom al flujo de pago, así que el mecanismo es un
+magic link aparte, mismo patrón que "Conferma il sito" de Flow 3.
+
+**Cómo funciona**:
+
+- Al tildar "Invia i link di pagamento" se genera (una sola vez, se
+  reusa en reenvíos) un token persistente en
+  `ru_delivery_clause_token`, y con eso una URL de aprobación vía
+  `admin-ajax.php` (`action=ru_delivery_approve_clauses`).
+- El mail `payment-links` muestra el texto exacto del art. 14 entre
+  comillas y un botón "Approvo specificamente queste clausole" con esa
+  URL. Si ya fue aprobado (`ru_delivery_clause_approved_at` con valor),
+  el mail muestra un mensaje de "già approvato" en vez del botón.
+- `ru_delivery_approve_clauses()` (nueva función, `application-core.php`)
+  valida `post_id` + `token` con `hash_equals()`, guarda
+  `ru_delivery_clause_approved_at` (timestamp) y
+  `ru_delivery_clause_approved_ip`, y devuelve una página simple de
+  agradecimiento (`wp_die()`), igual que `ru_delivery_confirm()` en
+  `delivery-core.php`.
+- El admin del CPT muestra el estado (aprobado con fecha/IP, o
+  pendiente en rojo) debajo del checkbox de links de pago.
+
+**Pendiente real, no técnico**: validar con un abogado si este
+mecanismo alcanza legalmente, y si el art. 14 necesita ajustes. Esto es
+una solución provisoria, no la definitiva.
+
 ## 5. Orden sugerido de construcción
 
 1. Resolver las decisiones de la sección 4.
