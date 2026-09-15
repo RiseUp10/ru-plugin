@@ -576,10 +576,17 @@ envío final de los links, no la conversación previa.
 en vez de un campo de texto donde el founder escribía todo a mano, ahora
 hay una tabla de **add-ons con un campo de precio por ítem** (catálogo
 fijo de etiquetas, sin precio hardcodeado — el founder lo escribe por
-cliente, ver `ru_delivery_addon_catalog()`) + un campo de **horas de
-personalización de diseño**, que calcula solo el costo (35€/h sin
-abono, 25€/h con abono, ver §7.6.1). Un precio > 0 en un ítem ya lo
-marca como incluido, sin checkbox aparte.
+cliente, ver `ru_delivery_addon_catalog()`). Un precio > 0 en un ítem ya
+lo marca como incluido, sin checkbox aparte.
+
+**Corrección (15 sep 2026)**: "Personalizzazione design" iba a calcular
+sola el precio (horas × 35€/25€ según abono activo, §7.6.1) — se
+descartó. A esta altura del flujo (Flow 2, antes de que el cliente
+pague) el cliente todavía no tiene una suscripción activa que consultar
+aunque haya elegido una en el dropdown de arriba, así que
+`ru_client_has_active_plan()` casi siempre daba falso negativo. Ahora es
+un ítem más del catálogo, precio 100% manual — el founder aplica la
+tarifa que corresponda a mano, igual que el resto.
 
 - **Costo extra = 0** (caso simple): se manda el link fijo de siempre
   (`RU_CHECKOUT_SITE_BASE_URL`, 1€).

@@ -426,12 +426,6 @@ add_action('edit_form_after_title', function ($post) {
         ];
         $current_plan = $get('ru_delivery_plan');
         $current_addons = $get('ru_delivery_addons') ?: [];
-        $current_hours  = $get('ru_delivery_custom_hours');
-
-        $email = $get('email');
-        $user  = $email ? get_user_by('email', $email) : false;
-        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
-        $hourly_rate = $has_sub ? 25 : 35;
 
         wp_nonce_field('ru_delivery_send', 'ru_delivery_send_nonce');
         echo '<div style="margin-top:20px; padding-top:15px; border-top:1px solid #ccd0d4;">';
@@ -442,13 +436,12 @@ add_action('edit_form_after_title', function ($post) {
         }
         echo '</select></p>';
 
-        echo '<p><strong>Add-on</strong> (lascia vuoto o 0 = non incluso, un prezzo &gt; 0 lo include automaticamente):</p>';
+        echo '<p><strong>Add-on</strong> (lascia vuoto o 0 = non incluso, un prezzo &gt; 0 lo include automaticamente. Per "Personalizzazione design" applica tu la tariffa che corrisponde, 35€/h senza abbonamento o 25€/h con abbonamento, e scrivi il totale):</p>';
         echo '<table class="widefat" style="max-width:500px;"><tbody>';
         foreach (ru_delivery_addon_catalog() as $key => $label) {
             $price = $current_addons[$key] ?? '';
             echo '<tr><td>' . esc_html($label) . '</td><td><input type="number" step="0.01" min="0" name="ru_delivery_addon_price[' . esc_attr($key) . ']" value="' . esc_attr($price) . '" style="width:90px;"> €</td></tr>';
         }
-        echo '<tr><td>Personalizzazione design (ore)<br><span style="color:#666; font-size:12px;">' . esc_html($hourly_rate) . '€/h (' . ($has_sub ? 'con abbonamento' : 'senza abbonamento') . ')</span></td><td><input type="number" step="0.5" min="0" name="ru_delivery_custom_hours" value="' . esc_attr($current_hours) . '" style="width:90px;"> h</td></tr>';
         echo '</tbody></table>';
 
         $extra_cost = ru_delivery_extra_cost($post_id);
@@ -489,7 +482,11 @@ function ru_delivery_plan_checkout_url(string $plan): string {
 
 // Catálogo de add-ons — solo etiquetas, sin precio fijo (el founder lo
 // escribe por cliente, evita hardcodear precios que pueden estar
-// desactualizados — ver discusión 14 sep 2026).
+// desactualizados — ver discusión 14 sep 2026). "Personalizzazione
+// design" es un ítem más, sin cálculo automático: a esta altura del
+// flujo (Flow 2, antes de que el cliente pague) todavía no existe una
+// suscripción activa que consultar, así que la tarifa 35€/25€ de
+// §7.6.1 la aplica el founder a mano, no el código.
 function ru_delivery_addon_catalog(): array {
     return [
         'lingua_extra'     => 'Lingua extra',
@@ -499,29 +496,16 @@ function ru_delivery_addon_catalog(): array {
         'carico_prodotti'  => 'Caricamento prodotti/servizi',
         'copywriting'      => 'Copywriting professionale',
         'branding'         => 'Branding/logo',
+        'design_custom'    => 'Personalizzazione design',
     ];
 }
 
-// Suma add-ons (precio ya escrito a mano por ítem) + horas de
-// personalización de diseño × tarifa (35€/h sin abbonamento, 25€/h con
-// abbonamento — ver RU-SUBSCRIPTION-SYSTEM-PLAN.md §7.6.1).
 function ru_delivery_extra_cost(int $post_id): float {
     $addons = get_post_meta($post_id, 'ru_delivery_addons', true) ?: [];
-    $total  = array_sum($addons);
-
-    $hours = (float) get_post_meta($post_id, 'ru_delivery_custom_hours', true);
-    if ($hours > 0) {
-        $email   = get_post_meta($post_id, 'email', true);
-        $user    = $email ? get_user_by('email', $email) : false;
-        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
-        $total  += $hours * ($has_sub ? 25 : 35);
-    }
-
-    return $total;
+    return array_sum($addons);
 }
 
-// Líneas para mostrar en el mail (label + precio ya resuelto), incluida
-// la de horas de diseño si corresponde.
+// Líneas para mostrar en el mail (label + precio ya resuelto).
 function ru_delivery_addon_lines(int $post_id): array {
     $catalog = ru_delivery_addon_catalog();
     $addons  = get_post_meta($post_id, 'ru_delivery_addons', true) ?: [];
@@ -531,15 +515,6 @@ function ru_delivery_addon_lines(int $post_id): array {
         if ($price > 0) {
             $lines[] = ['label' => $catalog[$key] ?? $key, 'price' => (float) $price];
         }
-    }
-
-    $hours = (float) get_post_meta($post_id, 'ru_delivery_custom_hours', true);
-    if ($hours > 0) {
-        $email   = get_post_meta($post_id, 'email', true);
-        $user    = $email ? get_user_by('email', $email) : false;
-        $has_sub = $user && function_exists('ru_client_has_active_plan') && ru_client_has_active_plan($user->ID);
-        $rate    = $has_sub ? 25 : 35;
-        $lines[] = ['label' => "Personalizzazione design ({$hours}h × {$rate}€/h)", 'price' => $hours * $rate];
     }
 
     return $lines;
@@ -563,7 +538,6 @@ add_action('save_post_ru_application', function ($post_id) {
         if ($price > 0) $addons[$key] = $price;
     }
     update_post_meta($post_id, 'ru_delivery_addons', $addons);
-    update_post_meta($post_id, 'ru_delivery_custom_hours', max(0, (float) ($_POST['ru_delivery_custom_hours'] ?? 0)));
 
     if (isset($_POST['ru_delivery_combined_payment_url'])) {
         update_post_meta($post_id, 'ru_delivery_combined_payment_url', esc_url_raw($_POST['ru_delivery_combined_payment_url']));
